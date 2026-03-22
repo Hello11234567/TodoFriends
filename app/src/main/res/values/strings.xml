@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">todofriends</string>
+
+    <!-- 스플래시 -->
+    <string name="splash_slogan">함께하면 더 알차게!</string>
+
+    <!-- 로그인 -->
+    <string name="login_title">로그인</string>
+    <string name="login_email_hint">이메일</string>
+    <string name="login_password_hint">비밀번호</string>
+    <string name="login_btn">로그인</string>
+    <string name="login_kakao">카카오로 로그인</string>
+    <string name="login_google">Google로 로그인</string>
+    <string name="login_or">또는</string>
+    <string name="login_to_signup">계정이 없으신가요?</string>
+    <string name="login_to_signup_link">회원가입</string>
+
+    <!-- 회원가입 -->
+    <string name="signup_title">회원가입</string>
+    <string name="signup_btn">가입하기</string>
+    <string name="signup_to_login">이미 계정이 있으신가요?</string>
+    <string name="signup_to_login_link">로그인</string>
+
+    <!-- 일정 -->
+    <string name="tab_personal">개인</string>
+    <string name="tab_team">팀</string>
+    <string name="btn_recommend">다시 추천해줘☹️</string>
+    <string name="btn_add_schedule">일정에 추가할😊</string>
+
+    <!-- 친구 -->
+    <string name="tab_friend_list">친구 목록</string>
+    <string name="tab_friend_request">친구 신청</string>
+    <string name="btn_accept">수락</string>
+    <string name="btn_reject">거절</string>
+</resources>
