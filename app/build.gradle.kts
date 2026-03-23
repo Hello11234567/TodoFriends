@@ -61,7 +61,7 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
     //달력
-    implementation("com.kizitonwose.calendar:view:2.5.0")
+    implementation("com.kizitonwose.calendar:compose:2.5.0")
 
     //카카오
     implementation("com.kakao.sdk:v2-user:2.20.1")
