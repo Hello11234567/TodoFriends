@@ -17,7 +17,7 @@ class SplashActivity : AppCompatActivity() {
 
         //3초 후 첫 화면으로 이동
         Handler(Looper.getMainLooper()).postDelayed({
-            val intent = Intent(this, FirstpageActivity::class.java)
+            val intent = Intent(this, HomeActivity::class.java)
             startActivity(intent)
             finish()
         }, 3000)
