@@ -5,7 +5,6 @@
     <color name="primary_light">#B3E5B6</color> <!-- 연한 초록(스플래시 원, 추천 받을래 테두리) -->
     <color name="primary_bg">#EDFEEE</color> <!-- 스플래시 배경 -->
     <color name="primary_soft">#E8F5E9</color> <!-- 잠금 배경, 팀 선택 배경, 팀 배지 배경 -->
-    <color name="black">#FF000000</color>
 
     <!-- 텍스트 -->
     <color name="text_primary">#4CAF50</color> <!-- 메인 초록 글씨(스플래시, 로그인) -->

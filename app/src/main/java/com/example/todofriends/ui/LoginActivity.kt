@@ -25,9 +25,6 @@ import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
 import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
-import com.example.todofriends.network.RetrofitClient
 
 class LoginActivity : ComponentActivity() {
 
@@ -36,7 +33,7 @@ class LoginActivity : ComponentActivity() {
         setContent {
             LoginScreen(
                 onKakaoLogin = { kakaoLogin() },
-                onGoogleLogin = { }
+                onGoogleLogin = { /* 구글 로그인 나중에 */ }
             )
         }
     }
@@ -46,43 +43,33 @@ class LoginActivity : ComponentActivity() {
             if (error != null) {
                 Log.e("Kakao", "카카오 로그인 실패", error)
             } else if (token != null) {
-                sendTokenToServer(token.accessToken)
+                Log.d("Kakao", "카카오 로그인 성공 토큰: ${token.accessToken}")
+                // TODO: Spring 서버로 토큰 전송
+                navigateToMain()
             }
         }
 
+        // 카카오톡 설치 여부 확인
         if (UserApiClient.instance.isKakaoTalkLoginAvailable(this)) {
             UserApiClient.instance.loginWithKakaoTalk(this) { token, error ->
                 if (error != null) {
+                    // 카카오톡 로그인 실패 시 카카오 계정으로 로그인
                     if (error is ClientError && error.reason == ClientErrorCause.Cancelled) return@loginWithKakaoTalk
                     UserApiClient.instance.loginWithKakaoAccount(this, callback = callback)
                 } else if (token != null) {
-                    sendTokenToServer(token.accessToken)
+                    Log.d("Kakao", "카카오톡 로그인 성공 토큰: ${token.accessToken}")
+                    navigateToMain()
                 }
             }
         } else {
+            // 카카오톡 미설치 시 카카오 계정으로 로그인
             UserApiClient.instance.loginWithKakaoAccount(this, callback = callback)
         }
     }
 
-    private fun sendTokenToServer(accessToken: String) {
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.api.kakaoLogin("Bearer $accessToken")
-                Log.d("Server", "서버 로그인 성공! JWT: ${response.token}, 닉네임: ${response.nickname}")
-                getSharedPreferences("auth", MODE_PRIVATE)
-                    .edit()
-                    .putString("jwt", response.token)
-                    .apply()
-                navigateToMain()
-            } catch (e: Exception) {
-                Log.e("Server", "서버 전송 실패", e)
-                navigateToMain()
-            }
-        }
-    }
-
     private fun navigateToMain() {
-        startActivity(Intent(this, FirstpageActivity::class.java))
+        val intent = Intent(this, FirstpageActivity::class.java)
+        startActivity(intent)
         finish()
     }
 }
