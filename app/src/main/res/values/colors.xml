@@ -37,4 +37,5 @@
     <!-- 공통 -->
     <color name="white">#FFFFFF</color> <!-- 흰색 -->
     <color name="gray">#9E9E9E</color> <!-- 닉네임으로 검색 글씨 -->
+    <color name="black">#000000</color> <!-- 검정색 -->
 </resources>

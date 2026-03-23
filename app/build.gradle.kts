@@ -55,4 +55,7 @@ dependencies {
 
     //Glide
     implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    //달력
+    implementation("com.kizitonwose.calendar:view:2.5.0")
 }
