@@ -82,7 +82,7 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun navigateToMain() {
-        startActivity(Intent(this, HomeActivity::class.java))
+        startActivity(Intent(this, NavActivity::class.java))
         finish()
     }
 }

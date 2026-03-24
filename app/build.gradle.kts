@@ -66,4 +66,7 @@ dependencies {
     //카카오
     implementation("com.kakao.sdk:v2-user:2.20.1")
 
+    //네비
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
 }
