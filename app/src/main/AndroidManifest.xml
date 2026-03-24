@@ -24,7 +24,7 @@
         </activity>
 
         <activity android:name=".ui.LoginActivity" />
-        <activity android:name=".ui.HomeActivity" />
+        <activity android:name=".ui.NavActivity" />
 
         <activity android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
             android:exported="true">
