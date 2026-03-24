@@ -1,8 +1,5 @@
 package com.example.todofriends.ui
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -22,25 +19,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.todofriends.R
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.firstDayOfWeekFromLocale
 import java.time.LocalDate
 import java.time.YearMonth
 
-class HomeActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { HomeScreen() }
-    }
-}
+// ✅ HomeActivity 클래스 삭제
+// ✅ BottomNavBar 삭제
+// ✅ ScheduleItem, getDummySchedules는 ScheduleViewModel.kt로 이동 예정, 지금은 유지
 
 data class ScheduleItem(
     val id: Int,
@@ -61,65 +53,61 @@ fun getDummySchedules(date: LocalDate): List<ScheduleItem> {
     }
 }
 
+//ScheduleViewModel 파라미터 추가
 @Composable
-fun HomeScreen() {
+fun HomeScreen(scheduleViewModel: ScheduleViewModel) {
     val bgColor = Color(0xFF0F0F13)
-    var selectedTab by remember { mutableStateOf(1) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     val showSchedule = selectedDate != null
 
-    // 캘린더 비율 애니메이션: 선택 전 1f, 선택 후 0.55f
+    //ViewModel에서 일정 데이터 구독
+    val scheduleMap by scheduleViewModel.scheduleMap.collectAsState()
+
     val calendarWeight by animateFloatAsState(
         targetValue = if (showSchedule) 0.52f else 1f,
         animationSpec = tween(durationMillis = 400, easing = EaseInOutCubic),
         label = "calendarWeight"
     )
 
-    Scaffold(
-        containerColor = bgColor,
-        bottomBar = {
-            BottomNavBar(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(bgColor)
-        ) {
-            // 캘린더: weight가 줄어들며 위로 올라감
-            CalendarSection(
-                modifier = Modifier.weight(calendarWeight),
-                selectedDate = selectedDate,
-                onDateSelected = { date ->
-                    selectedDate = if (selectedDate == date) null else date
-                },
-                isCompact = showSchedule
-            )
+    //Scaffold, bottomBar 제거 -> NavActivity가 담당
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+    ) {
+        CalendarSection(
+            modifier = Modifier.weight(calendarWeight),
+            selectedDate = selectedDate,
+            onDateSelected = { date ->
+                selectedDate = if (selectedDate == date) null else date
+            },
+            isCompact = showSchedule
+        )
 
-            //weight를 AnimatedVisibility 바깥으로 빼기
-            if(showSchedule) {
-                AnimatedVisibility(
-                    visible = true,
-                    modifier = Modifier.weight(1f - calendarWeight + 0.48f),
-                    enter = slideInVertically(
-                        initialOffsetY = { it },
-                        animationSpec = tween(400, easing = EaseInOutCubic)
-                    ) + fadeIn(animationSpec = tween(300)),
-                    exit = slideOutVertically(
-                        targetOffsetY = { it },
-                        animationSpec = tween(300)
-                    ) + fadeOut()
-                ) {
-                    selectedDate?.let { date ->
-                        ScheduleSection(
-                            selectedDate = date,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+        if (showSchedule) {
+            AnimatedVisibility(
+                visible = true,
+                modifier = Modifier.weight(1f - calendarWeight + 0.48f),
+                enter = slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(400, easing = EaseInOutCubic)
+                ) + fadeIn(animationSpec = tween(300)),
+                exit = slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = tween(300)
+                ) + fadeOut()
+            ) {
+                selectedDate?.let { date ->
+                    //ViewModel 데이터 우선, 없으면 더미 데이터
+                    val schedules = scheduleMap[date] ?: getDummySchedules(date)
+                    ScheduleSection(
+                        selectedDate = date,
+                        schedules = schedules,
+                        onCheckedChange = { index, item ->
+                            scheduleViewModel.toggleSchedule(date, index, item)
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }
@@ -153,16 +141,10 @@ fun CalendarSection(
 
     val visibleMonth = state.firstVisibleMonth.yearMonth
 
-    // 헤더 폰트 크기 애니메이션
     val monthFontSize by animateFloatAsState(
         targetValue = if (isCompact) 20f else 28f,
         animationSpec = tween(400),
         label = "monthFontSize"
-    )
-    val yearFontSize by animateFloatAsState(
-        targetValue = if (isCompact) 11f else 14f,
-        animationSpec = tween(400),
-        label = "yearFontSize"
     )
 
     val configuration = LocalConfiguration.current
@@ -238,6 +220,7 @@ fun CalendarSection(
                             .background(
                                 when {
                                     isSelected -> selectedColor
+                                    isToday -> todayColor
                                     else -> Color.Transparent
                                 }
                             ),
@@ -277,16 +260,16 @@ fun CalendarSection(
     }
 }
 
+// ✅ schedules, onCheckedChange 파라미터 추가
 @Composable
 fun ScheduleSection(
     selectedDate: LocalDate,
+    schedules: List<ScheduleItem>,
+    onCheckedChange: (Int, ScheduleItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val accentColor = Color(0xFFBF9B72)
     val bgSection = Color(0xFF16161C)
-    var schedules by remember(selectedDate) {
-        mutableStateOf(getDummySchedules(selectedDate))
-    }
 
     Column(
         modifier = modifier
@@ -295,7 +278,6 @@ fun ScheduleSection(
             .background(bgSection)
             .padding(horizontal = 20.dp, vertical = 20.dp)
     ) {
-        // 핸들 바
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -307,7 +289,6 @@ fun ScheduleSection(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 헤더
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -344,11 +325,7 @@ fun ScheduleSection(
                     ScheduleRow(
                         item = item,
                         accentColor = accentColor,
-                        onCheckedChange = {
-                            schedules = schedules.toMutableList().also {
-                                it[index] = item.copy(isDone = !item.isDone)
-                            }
-                        }
+                        onCheckedChange = { onCheckedChange(index, item) }
                     )
                 }
             }
@@ -394,34 +371,5 @@ fun ScheduleRow(
             fontWeight = if (item.isDone) FontWeight.Normal else FontWeight.Medium,
             textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None
         )
-    }
-}
-
-@Composable
-fun BottomNavBar(selectedTab: Int, onTabSelected: (Int) -> Unit) {
-    val bgColor = Color(0xFF0F0F13)
-    val activeColor = Color(0xFFBF9B72)
-    val inactiveColor = Color(0xFF666666)
-
-    NavigationBar(containerColor = bgColor, tonalElevation = 0.dp) {
-        listOf(
-            Triple(0, R.drawable.schedule, "일정"),
-            Triple(1, R.drawable.home, "홈"),
-            Triple(2, R.drawable.friend, "친구"),
-            Triple(3, R.drawable.mypage, "내 정보")
-        ).forEach { (index, icon, label) ->
-            NavigationBarItem(
-                selected = selectedTab == index,
-                onClick = { onTabSelected(index) },
-                icon = {
-                    Icon(
-                        painter = painterResource(id = icon),
-                        contentDescription = label,
-                        tint = if (selectedTab == index) activeColor else inactiveColor
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(indicatorColor = bgColor)
-            )
-        }
     }
 }
