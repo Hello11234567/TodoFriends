@@ -121,12 +121,3 @@ fun NavScreen() {
         }
     }
 }
-
-@Composable
-fun MyPageScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0F0F13))
-    )
-}
