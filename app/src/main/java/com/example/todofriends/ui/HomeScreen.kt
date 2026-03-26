@@ -12,6 +12,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.SwipeToDismiss
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.rememberDismissState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,21 +44,22 @@ data class ScheduleItem(
     val id: Int,
     val title: String,
     val time: String,
+    val endTime: String = "",
     val isDone: Boolean = false
 )
 
-fun getDummySchedules(date: LocalDate): List<ScheduleItem> {
-    return when (date.dayOfMonth) {
-        24 -> listOf(
-            ScheduleItem(1, "목욕하기", "10:00 - 11:00", true),
-            ScheduleItem(2, "친구와 점심", "13:00 - 14:00", true),
-            ScheduleItem(3, "공부하기", "15:00 - 17:00"),
-            ScheduleItem(4, "운동", "18:00 - 19:00")
-        )
-        else -> emptyList()
+fun calculateEndTime(startTime: String, duration: String): String {
+    return try {
+        val parts = startTime.split(":")
+        val hour = parts[0].toInt()
+        val minute = parts[1].toInt()
+        val durationMin = duration.toIntOrNull() ?: 0
+        val totalMinutes = hour * 60 + minute + durationMin
+        String.format("%02d:%02d", totalMinutes / 60, totalMinutes % 60)
+    } catch (e: Exception) {
+        ""
     }
 }
-
 //ScheduleViewModel 파라미터 추가
 @Composable
 fun HomeScreen(scheduleViewModel: ScheduleViewModel) {
@@ -99,12 +106,15 @@ fun HomeScreen(scheduleViewModel: ScheduleViewModel) {
             ) {
                 selectedDate?.let { date ->
                     //ViewModel 데이터 우선, 없으면 더미 데이터
-                    val schedules = scheduleMap[date] ?: getDummySchedules(date)
+                    val schedules = scheduleMap[date] ?:emptyList()
                     ScheduleSection(
                         selectedDate = date,
                         schedules = schedules,
                         onCheckedChange = { index, item ->
                             scheduleViewModel.toggleSchedule(date, index, item)
+                        },
+                        onDelete = { index, item ->
+                            scheduleViewModel.removeSchedule(date, item.id)
                         },
                         modifier = Modifier.fillMaxSize()
                     )
@@ -266,6 +276,7 @@ fun ScheduleSection(
     selectedDate: LocalDate,
     schedules: List<ScheduleItem>,
     onCheckedChange: (Int, ScheduleItem) -> Unit,
+    onDelete: (Int, ScheduleItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val accentColor = Color(0xFFBF9B72)
@@ -322,54 +333,97 @@ fun ScheduleSection(
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 itemsIndexed(schedules) { index, item ->
-                    ScheduleRow(
-                        item = item,
-                        accentColor = accentColor,
-                        onCheckedChange = { onCheckedChange(index, item) }
-                    )
+                    key(item.id) {
+                        ScheduleRow(
+                            item = item,
+                            accentColor = accentColor,
+                            onCheckedChange = { onCheckedChange(index, item) },
+                            onDelete = { onDelete(index, item) }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ScheduleRow(
     item: ScheduleItem,
     accentColor: Color,
-    onCheckedChange: () -> Unit
+    onCheckedChange: () -> Unit,
+    onDelete: () -> Unit //삭제 콜백
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .clip(CircleShape)
-                .background(if (item.isDone) accentColor else Color.Transparent)
-                .border(1.5.dp, if (item.isDone) accentColor else Color(0xFF555555), CircleShape)
-                .clickable { onCheckedChange() },
-            contentAlignment = Alignment.Center
-        ) {
-            if (item.isDone) {
+    val dismissState = rememberDismissState(
+        confirmStateChange = { dismissValue ->
+            if (dismissValue == DismissValue.DismissedToStart) {
+                onDelete()
+                true
+            } else false
+        }
+    )
+
+    SwipeToDismiss(
+        state = dismissState,
+        directions = setOf(DismissDirection.EndToStart),
+        background = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFEF5350))
+                    .padding(end = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
                 Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Color(0xFF1C0E06),
-                    modifier = Modifier.size(14.dp)
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "삭제",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        },
+        dismissContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF16161C))
+                    .padding(vertical = 4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(if (item.isDone) accentColor else Color.Transparent)
+                        .border(1.5.dp, if (item.isDone) accentColor else Color(0xFF555555), CircleShape)
+                        .clickable { onCheckedChange() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (item.isDone) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color(0xFF1C0E06),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = if (item.time.isNotEmpty()) {
+                        if (item.endTime.isNotEmpty()) "${item.title}  (${item.time} - ${item.endTime})"
+                        else "${item.title}  (${item.time})"
+                    } else item.title,
+                    color = if (item.isDone) Color(0xFF555566) else Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = if (item.isDone) FontWeight.Normal else FontWeight.Medium,
+                    textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None
                 )
             }
         }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Text(
-            text = if (item.time.isNotEmpty()) "${item.title}  (${item.time})" else item.title,
-            color = if (item.isDone) Color(0xFF555566) else Color.White,
-            fontSize = 14.sp,
-            fontWeight = if (item.isDone) FontWeight.Normal else FontWeight.Medium,
-            textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None
-        )
-    }
+    )
 }

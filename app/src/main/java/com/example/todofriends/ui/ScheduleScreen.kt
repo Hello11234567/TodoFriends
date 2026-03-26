@@ -9,11 +9,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,8 +31,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import java.time.LocalDate
-import androidx.compose.foundation.text.KeyboardOptions
+
 
 data class ScheduleInput(
     val id: Int,
@@ -98,12 +105,21 @@ fun ScheduleScreen(viewModel: ScheduleViewModel) {
 // ────────────────────────────────────────
 // 개인 탭
 // ────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
-    var inputs by remember { mutableStateOf(listOf(ScheduleInput(id = 0))) }
+    var inputs by viewModel.personalInputs
     var showRecommend by remember { mutableStateOf(false) }
     val today = LocalDate.now()
 
+    //TimePicker 상태
+    var showTimePicker by remember { mutableStateOf(false) }
+    var currentInputIndex by remember { mutableStateOf(0) }
+    val timePickerState = rememberTimePickerState(
+        initialHour = 9,
+        initialMinute = 0,
+        is24Hour = true
+    )
     // 더미 추천 데이터 (나중에 AI API로 교체)
     val recommendedList = listOf(
         RecommendedSchedule("11:00", "목욕하기"),
@@ -112,6 +128,48 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
         RecommendedSchedule("18:00", "운동")
     )
 
+    //TimePicker 다이얼로그
+    if(showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            containerColor = Color(0xFF16161C),
+            title = {
+                Text("시작 시간 선택", color = Color.White, fontSize = 16.sp)
+            },
+            text = {
+                TimeInput(
+                    state = timePickerState,
+                    colors = TimePickerDefaults.colors(
+                        timeSelectorSelectedContainerColor = Color(0xFFBF9B72),
+                        timeSelectorUnselectedContainerColor = Color(0xFF0F0F13),
+                        timeSelectorSelectedContentColor = Color(0xFF1C0E06),
+                        timeSelectorUnselectedContentColor = Color.White,
+                        containerColor = Color(0xFF0F0F13),
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val time = String.format(
+                        "%02d:%02d",
+                        timePickerState.hour,
+                        timePickerState.minute
+                    )
+                    inputs = inputs.toMutableList().also { l ->
+                        l[currentInputIndex] = inputs[currentInputIndex].copy(startTime = time)
+                    }
+                    showTimePicker = false
+                }) {
+                    Text("확인", color = Color(0xFFBF9B72))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("취소", color = Color(0xFF888899))
+                }
+            }
+        )
+    }
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -156,6 +214,10 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                                     l.removeAt(index)
                                 }
                             }
+                        },
+                        onTimeClick = {
+                            currentInputIndex = index
+                            showTimePicker = true
                         }
                     )
                 }
@@ -240,11 +302,15 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                     Button(
                         onClick = {
                             val items = recommendedList.mapIndexed { i, r ->
-                                ScheduleItem(id = i, title = r.title, time = r.time)
+                                ScheduleItem(
+                                    id = i,
+                                    title = r.title,
+                                    time = r.time,
+                                    endTime = calculateEndTime(r.time, "60")
+                                )
                             }
                             viewModel.addSchedules(today, items)
                             showRecommend = false
-                            inputs = listOf(ScheduleInput(id = 0))
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = accentColor),
@@ -282,11 +348,11 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                                     ScheduleItem(
                                         id = i,
                                         title = input.name,
-                                        time = input.startTime
+                                        time = input.startTime,
+                                        endTime = calculateEndTime(input.startTime, input.duration)
                                     )
                                 }
                             viewModel.addSchedules(today, items)
-                            inputs = listOf(ScheduleInput(id = 0))
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = accentColor),
@@ -321,8 +387,11 @@ fun PersonalInputRow(
     onNameChange: (String) -> Unit,
     onStartTimeChange: (String) -> Unit,
     onDurationChange: (String) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onTimeClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -333,12 +402,24 @@ fun PersonalInputRow(
             placeholder = "일정 이름",
             modifier = Modifier.weight(2f)
         )
-        ScheduleTextField(
-            value = input.startTime,
-            onValueChange = onStartTimeChange,
-            placeholder = "시작 시간",
-            modifier = Modifier.weight(1.5f)
-        )
+
+        //시간 피커
+        Box(
+            modifier = Modifier
+                .weight(1.5f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF0F0F13))
+                .clickable { onTimeClick() }
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = if (input.startTime.isEmpty()) "시작 시간" else input.startTime,
+                color = if (input.startTime.isEmpty()) Color(0xFF555566) else Color.White,
+                fontSize = 13.sp
+            )
+        }
+
         ScheduleTextField(
             value = input.duration,
             onValueChange = onDurationChange,
@@ -362,7 +443,7 @@ fun PersonalInputRow(
 // ────────────────────────────────────────
 @Composable
 fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
-    var inputs by remember { mutableStateOf(listOf(ScheduleInput(id = 0))) }
+    var inputs by viewModel.teamInputs
     var showRecommend by remember { mutableStateOf(false) }
     var selectedTeam by remember { mutableStateOf("투두프렌즈팀") }
     var expanded by remember { mutableStateOf(false) }
@@ -481,11 +562,13 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                     Button(
                         onClick = {
                             val items = recommendedList.mapIndexed { i, r ->
-                                ScheduleItem(id = i, title = r.title, time = r.time)
+                                ScheduleItem(id = i,
+                                    title = r.title,
+                                    time = r.time,
+                                    endTime = calculateEndTime(r.time, "60"))
                             }
                             viewModel.addSchedules(today, items)
                             showRecommend = false
-                            inputs = listOf(ScheduleInput(id = 0))
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = accentColor),

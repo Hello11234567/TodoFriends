@@ -1,5 +1,6 @@
 package com.example.todofriends.ui
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,6 +10,8 @@ import java.time.LocalDate
 class ScheduleViewModel : ViewModel() {
     private val _scheduleMap = MutableStateFlow<Map<LocalDate, List<ScheduleItem>>>(emptyMap())
     val scheduleMap: StateFlow<Map<LocalDate, List<ScheduleItem>>> = _scheduleMap.asStateFlow()
+    var personalInputs = mutableStateOf(listOf(ScheduleInput(id = 0)))
+    var teamInputs = mutableStateOf(listOf(ScheduleInput(id = 0)))
 
     //일정 추가
     fun addSchedules(date: LocalDate, items: List<ScheduleItem>) {
@@ -32,8 +35,11 @@ class ScheduleViewModel : ViewModel() {
         _scheduleMap.value = current
     }
 
-    //날짜별 일정 조회
-    fun getSchedules(date: LocalDate): List<ScheduleItem> {
-        return _scheduleMap.value[date] ?: emptyList()
+    fun removeSchedule(date: LocalDate, scheduleId: Int) {
+        val current = _scheduleMap.value.toMutableMap()
+        val list = current[date]?.toMutableList() ?: return
+        list.removeIf { it.id == scheduleId }
+        current[date] = list
+        _scheduleMap.value = current
     }
 }

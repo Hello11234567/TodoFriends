@@ -69,6 +69,10 @@ dependencies {
     //네비
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
+    // '>' 아이콘
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
+    //일정 슬라이드 삭제에 사용
+    implementation("androidx.compose.material:material:1.6.0")
 
 }
