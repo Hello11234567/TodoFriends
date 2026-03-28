@@ -31,7 +31,12 @@ val dummyCompletedSchedules = listOf(
 
 val dummyTeams = listOf("투두프렌즈팀", "스터디팀")
 @Composable
-fun MyPageScreen() {
+fun MyPageMainScreen(
+    onProfileEdit: () -> Unit,
+    onNotification: () -> Unit,
+    onFriendManage: () -> Unit,
+    onTeamManage: () -> Unit,
+) {
     val bgColor = Color(0xFF0F0F13)
     val accentColor = Color(0xFFBF9B72)
 
@@ -45,6 +50,21 @@ fun MyPageScreen() {
 
     //팝업 상태
     var selectedStat by remember { mutableStateOf<String?>(null) }
+
+    var currentScreen by remember { mutableStateOf("main") } //메인, 프로필, 알림, 친구, 팀
+
+    when (currentScreen) {
+        "main" -> MyPageMainScreen(
+            onProfileEdit = { currentScreen = "profile" },
+            onNotification = { currentScreen = "notification" },
+            onFriendManage = { currentScreen = "friendManage" },
+            onTeamManage = { currentScreen = "teamManage" }
+        )
+        "profile" -> ProfileEditScreen(onBack = { currentScreen = "main" })
+        "notification" -> NotificationSCreen(onBack = { currentScreen = "main" })
+        "friendManage" -> FriendManageScreen(onBack = { currentScreen = "main" })
+        "teamManage" -> TeamManageSCreen(onBack = { currentScreen = "main" })
+    }
 
     Column(
         modifier = Modifier
@@ -173,13 +193,13 @@ fun MyPageScreen() {
                 .background(Color(0xFF16161C))
                 .padding(horizontal = 4.dp)
         ) {
-            MenuItemRow(label = "프로필 수정", onClick = { /* TODO: 프로필 수정 화면 */ })
+            MenuItemRow(label = "프로필 수정", onClick = onProfileEdit)
             HorizontalDivider(color = Color(0xFF2A2A35), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
-            MenuItemRow(label = "알림 설정", onClick = { /* TODO: 알림 설정 화면 */ })
+            MenuItemRow(label = "알림 설정", onClick = onNotification)
             HorizontalDivider(color = Color(0xFF2A2A35), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
-            MenuItemRow(label = "친구 관리", onClick = { /* TODO: 친구 관리 화면 */ })
+            MenuItemRow(label = "친구 관리", onClick = onFriendManage)
             HorizontalDivider(color = Color(0xFF2A2A35), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
-            MenuItemRow(label = "팀 관리", onClick = { /* TODO: 팀 관리 화면 */ })
+            MenuItemRow(label = "팀 관리", onClick = onTeamManage)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
