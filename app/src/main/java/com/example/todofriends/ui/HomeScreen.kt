@@ -523,9 +523,7 @@ fun ScheduleDetailBottomSheet(
     onCommentAdd: (String) -> Unit
 ) {
     var commentText by remember { mutableStateOf("") }
-    var showEmojiInput by remember { mutableStateOf(false) }
-    var emojiInputText by remember { mutableStateOf("") }
-    val emojiFocusRequester = remember { FocusRequester() }
+    var showEmojiPicker by remember { mutableStateOf(false) }
 
     // 딤 배경
     Box(
@@ -618,60 +616,27 @@ fun ScheduleDetailBottomSheet(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color(0xFF0F0F13))
-                        .clickable { showEmojiInput = !showEmojiInput }
+                        .clickable { showEmojiPicker = !showEmojiPicker }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Text(text = "+ 이모지", fontSize = 13.sp, color = Color(0xFF555566))
+                    Text(
+                        text = if (showEmojiPicker) "닫기" else "+이모지",
+                        fontSize = 13.sp,
+                        color = Color(0xFF555566)
+                    )
                 }
             }
 
             // 이모지 입력창
-            if (showEmojiInput) {
+            if (showEmojiPicker) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    BasicTextField(
-                        value = emojiInputText,
-                        onValueChange = {
-                            if (it.isNotEmpty()) {
-                                onReactionToggle(it)
-                                emojiInputText = ""
-                                showEmojiInput = false
-                            }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF0F0F13))
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                            .focusRequester(emojiFocusRequester),
-                        textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
-                        cursorBrush = SolidColor(accentColor),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        decorationBox = { innerTextField ->
-                            if (emojiInputText.isEmpty()) {
-                                Text("이모지 입력...", color = Color(0xFF555566), fontSize = 13.sp)
-                            }
-                            innerTextField()
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "취소",
-                        color = Color(0xFF555566),
-                        fontSize = 13.sp,
-                        modifier = Modifier.clickable {
-                            showEmojiInput = false
-                            emojiInputText = ""
-                        }
-                    )
-                }
-                LaunchedEffect(Unit) {
-                    emojiFocusRequester.requestFocus()
-                }
+                EmojiPickerSection(
+                    accentColor = accentColor,
+                    onEmojiSelected = { emoji ->
+                        onReactionToggle(emoji)
+                        showEmojiPicker = false
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -776,6 +741,105 @@ fun ScheduleDetailBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+fun EmojiPickerSection(
+    accentColor: Color,
+    onEmojiSelected: (String) -> Unit
+) {
+    val frequentEmojis = listOf(
+        "😀", "😂", "🥰", "😎", "😢", "😡",
+        "👍", "👎", "❤️", "🔥", "🎉", "💪",
+        "✅", "🤔", "😅", "🙏", "👀", "🤣",
+        "😮", "🥳", "😴", "🤩", "😬", "🫡"
+    )
+
+    var showDirectInput by remember { mutableStateOf(false) }
+    var directInputText by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+
+    Column {
+        // 자주 쓰는 이모지 그리드
+        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(8),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(frequentEmojis.size) { index ->
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF0F0F13))
+                        .clickable { onEmojiSelected(frequentEmojis[index]) }
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = frequentEmojis[index], fontSize = 18.sp)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 직접 입력 토글
+        if (!showDirectInput) {
+            Text(
+                text = "다른 이모지 입력하기",
+                color = Color(0xFF555566),
+                fontSize = 12.sp,
+                modifier = Modifier.clickable { showDirectInput = true }
+            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicTextField(
+                    value = directInputText,
+                    onValueChange = {
+                        if (it.isNotEmpty()) {
+                            onEmojiSelected(it)
+                            directInputText = ""
+                            showDirectInput = false
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF0F0F13))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .focusRequester(focusRequester),
+                    textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
+                    cursorBrush = SolidColor(accentColor),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    decorationBox = { innerTextField ->
+                        if (directInputText.isEmpty()) {
+                            Text("이모지 직접 입력...", color = Color(0xFF555566), fontSize = 13.sp)
+                        }
+                        innerTextField()
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "취소",
+                    color = Color(0xFF555566),
+                    fontSize = 13.sp,
+                    modifier = Modifier.clickable {
+                        showDirectInput = false
+                        directInputText = ""
+                    }
+                )
+            }
+            LaunchedEffect(Unit) {
+                focusRequester.requestFocus()
+            }
         }
     }
 }
