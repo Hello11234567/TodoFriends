@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,10 +27,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.widget.Toast
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.ui.platform.LocalContext
-import com.bumptech.glide.load.model.UnitModelLoader
 
 data class Friend(
     val id: String,
@@ -74,29 +71,38 @@ val dummySearchResults = listOf(
 fun FriendScreen() {
     val bgColor = Color(0xFF0F0F13)
     var isSearchMode by remember { mutableStateOf(false) }
+    var selectedFriend by remember { mutableStateOf<Friend?>(null) }  // ✅ 추가
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(bgColor)
     ) {
-        AnimatedContent(
-            targetState = isSearchMode,
-            transitionSpec =  {
-                fadeIn() togetherWith fadeOut()
+        when {
+            selectedFriend != null -> {
+                FriendScheduleScreen(
+                    friend = selectedFriend!!,
+                    onBack = { selectedFriend = null }
+                )
             }
-        ) { searchMode ->
-            if (searchMode) {
+            isSearchMode -> {
                 FriendSearchScreen(onBack = { isSearchMode = false })
-            } else {
-                FriendMainScreen(onSearchClick = { isSearchMode = true})
+            }
+            else -> {
+                FriendMainScreen(
+                    onSearchClick = { isSearchMode = true },
+                    onFriendClick = { selectedFriend = it }
+                )
             }
         }
     }
 }
 
 @Composable
-fun FriendMainScreen(onSearchClick: () -> Unit) {
+fun FriendMainScreen(
+    onSearchClick: () -> Unit,
+    onFriendClick: (Friend) -> Unit  // ✅ 추가
+) {
     val bgColor = Color(0xFF0F0F13)
     val accentColor = Color(0xFFBF9B72)
     var selectedTab by remember { mutableStateOf(0) }
@@ -128,7 +134,7 @@ fun FriendMainScreen(onSearchClick: () -> Unit) {
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
                 tint = Color(0xFF555566),
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = "닉네임으로 검색", color = Color(0xFF555566), fontSize = 14.sp)
@@ -168,34 +174,38 @@ fun FriendMainScreen(onSearchClick: () -> Unit) {
         HorizontalDivider(color = Color(0xFF2A2A35), thickness = 0.5.dp)
 
         when (selectedTab) {
-            0 -> FriendListTab(accentColor = accentColor)
+            0 -> FriendListTab(accentColor = accentColor, onFriendClick = onFriendClick)
             1 -> FriendRequestTab(accentColor = accentColor)
         }
     }
 }
 
 @Composable
-fun FriendListTab(accentColor: Color) {
+fun FriendListTab(accentColor: Color, onFriendClick: (Friend) -> Unit) {  // ✅ 파라미터 추가
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(dummyFriends) {friend ->
-            FriendListItem(friend = friend, accentColor = accentColor)
+        items(dummyFriends) { friend ->
+            FriendListItem(
+                friend = friend,
+                accentColor = accentColor,
+                onFriendClick = onFriendClick  // ✅ 전달
+            )
         }
     }
 }
-@Composable
-fun FriendListItem(friend: Friend, accentColor: Color) {
-    val context = LocalContext.current
 
+@Composable
+fun FriendListItem(
+    friend: Friend,
+    accentColor: Color,
+    onFriendClick: (Friend) -> Unit  // ✅ 파라미터 추가
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                // TODO: 친구 일정 화면 이동
-                Toast.makeText(context, "${friend.name}의 일정", Toast.LENGTH_SHORT).show()
-            }
+            .clickable { onFriendClick(friend) }  // ✅ 수정
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -224,7 +234,6 @@ fun FriendListItem(friend: Friend, accentColor: Color) {
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 )
-
                 friend.team?.let { team ->
                     Spacer(modifier = Modifier.width(6.dp))
                     Box(
@@ -254,6 +263,7 @@ fun FriendListItem(friend: Friend, accentColor: Color) {
         )
     }
 }
+
 @Composable
 fun FriendRequestTab(accentColor: Color) {
     var receivedRequests by remember { mutableStateOf(dummyReceivedRequests) }
@@ -285,16 +295,12 @@ fun FriendRequestTab(accentColor: Color) {
                 ReceivedRequestItem(
                     request = request,
                     accentColor = accentColor,
-                    onAccept = {
-                        receivedRequests = receivedRequests.filter { it.id != request.id }
-                    },
-                    onReject = {
-                        receivedRequests = receivedRequests.filter { it.id != request.id }
-                    }
+                    onAccept = { receivedRequests = receivedRequests.filter { it.id != request.id } },
+                    onReject = { receivedRequests = receivedRequests.filter { it.id != request.id } }
                 )
             }
         }
-        // 보낸 신청 섹션
+
         item {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -317,10 +323,7 @@ fun FriendRequestTab(accentColor: Color) {
             items(sentRequests) { request ->
                 SentRequestItem(
                     request = request,
-                    onCancel = {
-                        // 취소 시 목록에서 제거 (TODO: API 연동)
-                        sentRequests = sentRequests.filter { it.id != request.id }
-                    }
+                    onCancel = { sentRequests = sentRequests.filter { it.id != request.id } }
                 )
             }
         }
@@ -340,7 +343,6 @@ fun ReceivedRequestItem(
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 프로필 원
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -358,7 +360,6 @@ fun ReceivedRequestItem(
             Text(text = request.nickname, color = Color(0xFF666677), fontSize = 13.sp)
         }
 
-        // 수락 버튼
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -371,7 +372,6 @@ fun ReceivedRequestItem(
 
         Spacer(modifier = Modifier.width(6.dp))
 
-        // 거절 버튼
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -395,7 +395,6 @@ fun SentRequestItem(
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 프로필 원
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -413,7 +412,6 @@ fun SentRequestItem(
             Text(text = request.nickname, color = Color(0xFF666677), fontSize = 13.sp)
         }
 
-        // 취소 버튼
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -436,7 +434,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
     var hasSearched by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
-    // 화면 진입 시 검색창 자동 포커스
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Column(
@@ -444,14 +441,12 @@ fun FriendSearchScreen(onBack: () -> Unit) {
             .fillMaxSize()
             .background(bgColor)
     ) {
-        // 상단 뒤로가기 + 검색창
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 뒤로가기 버튼
             Icon(
                 imageVector = Icons.Default.ArrowBack,
                 contentDescription = "뒤로가기",
@@ -463,13 +458,11 @@ fun FriendSearchScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // 검색 입력창
             BasicTextField(
                 value = searchQuery,
                 onValueChange = {
                     searchQuery = it
                     if (it.isNotBlank()) {
-                        // 더미 검색 필터 (TODO: API 연동으로 교체)
                         searchResults = dummySearchResults.filter { friend ->
                             friend.name.contains(it) || friend.nickname.contains(it)
                         }
@@ -496,7 +489,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                 }
             )
 
-            // X 버튼 (검색어 있을 때만 표시)
             if (searchQuery.isNotEmpty()) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
@@ -517,14 +509,12 @@ fun FriendSearchScreen(onBack: () -> Unit) {
         HorizontalDivider(color = Color(0xFF2A2A35), thickness = 0.5.dp)
 
         if (!hasSearched) {
-            // 최근 검색어 목록
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("최근 검색어", color = Color(0xFF888899), fontSize = 13.sp)
-                    // 전체 삭제
                     Text(
                         "전체삭제",
                         color = Color(0xFF555566),
@@ -537,7 +527,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // 최근 검색어 클릭 시 바로 검색
                             .clickable {
                                 searchQuery = query
                                 searchResults = dummySearchResults.filter { friend ->
@@ -561,7 +550,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                             fontSize = 14.sp,
                             modifier = Modifier.weight(1f)
                         )
-                        // 개별 삭제 버튼
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "삭제",
@@ -576,7 +564,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                 }
             }
         } else {
-            // 검색 결과
             Text(
                 text = "검색 결과",
                 color = Color(0xFF888899),
@@ -584,7 +571,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
             )
             if (searchResults.isEmpty()) {
-                // 결과 없을 때
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -596,7 +582,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                     )
                 }
             } else {
-                // 검색 결과 목록
                 LazyColumn {
                     items(searchResults) { friend ->
                         Row(
@@ -605,7 +590,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                                 .padding(horizontal = 20.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 프로필 원
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
@@ -625,7 +609,6 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                                 Text(friend.name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                                 Text(friend.nickname, color = Color(0xFF666677), fontSize = 13.sp)
                             }
-                            // 신청 버튼 (TODO: API 연동)
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
