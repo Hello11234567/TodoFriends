@@ -195,11 +195,11 @@ fun TeamManageScreen(onBack: () -> Unit) {
 
             //팀 만들기 버튼
             Box(
-               modifier = Modifier
-                   .clip(RoundedCornerShape(8.dp))
-                   .background(accentColor)
-                   .clickable { showCreateDialog = true }
-                   .padding(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(accentColor)
+                    .clickable { showCreateDialog = true }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
