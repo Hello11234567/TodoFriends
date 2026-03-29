@@ -55,11 +55,14 @@ fun FriendScheduleScreen(
 ) {
     val bgColor = Color(0xFF0F0F13)
     val accentColor = Color(0xFFBF9B72)
+
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var schedules by remember(selectedDate) {  // ✅ val → var
         mutableStateOf(getDummyFriendSchedule(selectedDate))
     }
     var selectedSchedule by remember { mutableStateOf<ScheduleItem?>(null) }
+    var showTeamInviteDialog by remember { mutableStateOf(false) }
+    var selectedTeamForInvite by remember { mutableStateOf<String?>(null) }
 
     val currentMonth = remember { YearMonth.now() }
     val startMonth = remember { currentMonth.minusMonths(12) }
@@ -75,6 +78,80 @@ fun FriendScheduleScreen(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
+        //팀 초대 다이얼로그
+        if (showTeamInviteDialog) {
+            AlertDialog(
+                onDismissRequest = { showTeamInviteDialog = false },
+                containerColor = Color(0xFF1A1A24),
+                title = {
+                    Text(
+                        text = "${friend.name}을 팀에 초대",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dummyTeams.forEach { team ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (selectedTeamForInvite == team)
+                                            accentColor.copy(alpha = 0.2f)
+                                        else Color(0xFF0F0F13)
+                                    )
+                                    .clickable { selectedTeamForInvite = team }
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (selectedTeamForInvite == team) accentColor
+                                            else Color(0xFF555566)
+                                        )
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = team,
+                                    color = if (selectedTeamForInvite == team) accentColor else Color.White,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showTeamInviteDialog = false
+                            selectedTeamForInvite = null
+                            // TODO: API 연동 - POST /api/teams/{teamId}/invite/{friendId}
+                        }
+                    ) {
+                        Text(
+                            "초대하기",
+                            color = if (selectedTeamForInvite != null) accentColor else Color(0xFF555566),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showTeamInviteDialog = false
+                        selectedTeamForInvite = null
+                    }) {
+                        Text("취소", color = Color(0xFF888899))
+                    }
+                }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -89,7 +166,7 @@ fun FriendScheduleScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "뒤로가기",  // ✅ 오타 수정
+                    contentDescription = "뒤로가기",
                     tint = Color.White,
                     modifier = Modifier
                         .size(24.dp)
@@ -111,7 +188,7 @@ fun FriendScheduleScreen(
                     )
                 }
                 Spacer(modifier = Modifier.width(10.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = friend.name,
                         color = Color.White,
@@ -122,6 +199,22 @@ fun FriendScheduleScreen(
                         text = friend.nickname,
                         color = Color(0xFF888899),
                         fontSize = 12.sp
+                    )
+                }
+
+                //팀 초대 버튼
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(accentColor.copy(alpha = 0.2f))
+                        .clickable { showTeamInviteDialog = true }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "팀 초대",
+                        color = accentColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
