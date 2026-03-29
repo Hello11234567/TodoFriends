@@ -30,6 +30,24 @@ val dummyCompletedSchedules = listOf(
 )
 
 val dummyTeams = listOf("투두프렌즈팀", "스터디팀")
+
+@Composable
+fun MyPageScreen() {
+    var currentScreen by remember { mutableStateOf("main") }
+
+    when (currentScreen) {
+        "main" -> MyPageMainScreen(
+            onProfileEdit = { currentScreen = "profile" },
+            onNotification = { currentScreen = "notification" },
+            onFriendManage = { currentScreen = "friendManage" },
+            onTeamManage = { currentScreen = "teamManage" }
+        )
+        "profile" -> ProfileEditScreen(onBack = { currentScreen = "main" })
+        "notification" -> NotificationSCreen(onBack = { currentScreen = "main" })
+        "friendManage" -> FriendManageScreen(onBack = { currentScreen = "main" })
+        "teamManage" -> TeamManageScreen(onBack = { currentScreen = "main" })
+    }
+}
 @Composable
 fun MyPageMainScreen(
     onProfileEdit: () -> Unit,
@@ -50,21 +68,6 @@ fun MyPageMainScreen(
 
     //팝업 상태
     var selectedStat by remember { mutableStateOf<String?>(null) }
-
-    var currentScreen by remember { mutableStateOf("main") } //메인, 프로필, 알림, 친구, 팀
-
-    when (currentScreen) {
-        "main" -> MyPageMainScreen(
-            onProfileEdit = { currentScreen = "profile" },
-            onNotification = { currentScreen = "notification" },
-            onFriendManage = { currentScreen = "friendManage" },
-            onTeamManage = { currentScreen = "teamManage" }
-        )
-        "profile" -> ProfileEditScreen(onBack = { currentScreen = "main" })
-        "notification" -> NotificationSCreen(onBack = { currentScreen = "main" })
-        "friendManage" -> FriendManageScreen(onBack = { currentScreen = "main" })
-        "teamManage" -> TeamManageSCreen(onBack = { currentScreen = "main" })
-    }
 
     Column(
         modifier = Modifier
