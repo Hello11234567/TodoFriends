@@ -5,6 +5,7 @@
 
 package com.example.todofriends.ui
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -24,8 +26,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.todofriends.R
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 
 //네비게이션 경로 정의
 sealed class Screen(val route: String) {
@@ -49,6 +49,12 @@ fun NavScreen() {
     val navController = rememberNavController()
     val scheduleViewModel: ScheduleViewModel = viewModel()
     val bgColor = Color(0xFF0F0F13)
+    val context = LocalContext.current
+
+    // TODO: API 연동 시 JWT 토큰으로 로그인 여부 확인
+    val isLoggedIn = context
+        .getSharedPreferences("auth", Context.MODE_PRIVATE)
+        .getString("jwt", null) != null
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -107,16 +113,35 @@ fun NavScreen() {
                 .background(bgColor)
         ) {
             composable(Screen.Home.route) {
+                //홈은 로그인 없이 볼 수 있음
                 HomeScreen(scheduleViewModel = scheduleViewModel)
             }
             composable(Screen.Schedule.route) {
-                ScheduleScreen(viewModel = scheduleViewModel)
+                //TODO: API 연동 시 isLoggedIn -> 서버 토큰 유효성 검사로 교체
+                if (isLoggedIn) ScheduleScreen(viewModel = scheduleViewModel)
+                else LoginPromptScreen(onBack = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                    }
+                })
             }
             composable(Screen.Friend.route) {
-               FriendScreen()
+                //TODO: API 연동 시 isLoggedIn -> 서버 토큰 유효성 검사로 교체
+               if (isLoggedIn) FriendScreen()
+               else LoginPromptScreen(onBack = {
+                   navController.navigate(Screen.Home.route) {
+                       popUpTo(navController.graph.findStartDestination().id)
+                   }
+               })
             }
             composable(Screen.MyPage.route) {
-                MyPageScreen()
+                //TODO: API 연동 시 isLoggedIn -> 서버 토큰 유효성 검사로 교체
+                if (isLoggedIn) MyPageScreen()
+                else LoginPromptScreen(onBack = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                    }
+                })
             }
         }
     }
