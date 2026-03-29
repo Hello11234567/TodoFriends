@@ -36,7 +36,9 @@ import com.kizitonwose.calendar.core.firstDayOfWeekFromLocale
 import java.time.LocalDate
 import java.time.YearMonth
 
-// 더미 친구 일정 데이터 (나중에 API 연동으로 교체)
+// TODO: API 연동 시 이 함수 삭제
+// GET /api/friends/{friendId}/schedules/{date} 로 교체
+// FriendViewModel.getFriendSchedules(friendId, date) 호출
 fun getDummyFriendSchedule(date: LocalDate): List<ScheduleItem> {
     return when (date.dayOfMonth) {
         27 -> listOf(
@@ -57,7 +59,10 @@ fun FriendScheduleScreen(
     val accentColor = Color(0xFFBF9B72)
 
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    var schedules by remember(selectedDate) {  // ✅ val → var
+
+    // TODO: API 연동 시 교체
+    // FriendViewModel.getFriendSchedules(friend.id, selectedDate) 로 불러오기
+    var schedules by remember(selectedDate) {
         mutableStateOf(getDummyFriendSchedule(selectedDate))
     }
     var selectedSchedule by remember { mutableStateOf<ScheduleItem?>(null) }
@@ -93,6 +98,8 @@ fun FriendScheduleScreen(
                 },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // TODO: API 연동 시 dummyTeams 대신 ViewModel에서 내 팀 목록 불러오기
+                        // GET /api/teams → TeamViewModel.getMyTeams()
                         dummyTeams.forEach { team ->
                             Row(
                                 modifier = Modifier
@@ -132,6 +139,8 @@ fun FriendScheduleScreen(
                             showTeamInviteDialog = false
                             selectedTeamForInvite = null
                             // TODO: API 연동 - POST /api/teams/{teamId}/invite/{friendId}
+                            // TeamViewModel.inviteFriend(teamId, friend.id) 호출
+                            // 초대 성공 시 Toast 메시지 표시
                         }
                     ) {
                         Text(
@@ -173,6 +182,9 @@ fun FriendScheduleScreen(
                         .clickable { onBack() }
                 )
                 Spacer(modifier = Modifier.width(12.dp))
+
+                // TODO: API 연동 시 friend.profileImage로 교체
+                // AsyncImage(model = friend.profileImage, ...)
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -221,7 +233,6 @@ fun FriendScheduleScreen(
 
             HorizontalDivider(color = Color(0xFF2A2A35), thickness = 0.5.dp)
 
-            // ✅ LazyColumn을 Row 밖으로
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 20.dp)
@@ -361,6 +372,8 @@ fun FriendScheduleScreen(
                 accentColor = accentColor,
                 onDismiss = { selectedSchedule = null },
                 onReactionToggle = { emoji ->
+                    // TODO: API 연동 - POST /api/schedules/{scheduleId}/reactions
+                    // FriendViewModel.toggleReaction(scheduleId, emoji) 호출
                     schedules = schedules.map { s ->
                         if (s.id == schedule.id) {
                             val existing = s.reactions.find { it.emoji == emoji }
@@ -380,14 +393,17 @@ fun FriendScheduleScreen(
                     selectedSchedule = schedules.find { it.id == schedule.id }
                 },
                 onCommentAdd = { text ->
+                    // TODO: API 연동 - POST /api/schedules/{scheduleId}/comments
+                    // FriendViewModel.addComment(scheduleId, text) 호출
+                    // userName은 로그인된 내 정보로 교체
                     schedules = schedules.map { s ->
                         if (s.id == schedule.id) {
                             s.copy(
                                 comments = s.comments + Comment(
                                     id = s.comments.size + 1,
-                                    userName = "나",
+                                    userName = "나", // TODO: 로그인 유저 닉네임으로 교체
                                     text = text,
-                                    time = "방금"
+                                    time = "방금" // TODO: 서버 시간으로 교체
                                 )
                             )
                         } else s
@@ -531,6 +547,8 @@ fun FriendScheduleBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             ) {
+                // TODO: API 연동 시 서버에서 받아온 reactions 데이터로 교체
+                // GET /api/schedules/{scheduleId}/reactions
                 schedule.reactions.forEach { reaction ->
                     Box(
                         modifier = Modifier
@@ -584,6 +602,8 @@ fun FriendScheduleBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // TODO: API 연동 시 서버에서 받아온 comments 데이터로 교체
+            // GET /api/schedules/{scheduleId}/comments
             if (schedule.comments.isNotEmpty()) {
                 Text(text = "댓글", color = Color(0xFF888899), fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -593,6 +613,7 @@ fun FriendScheduleBottomSheet(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // TODO: API 연동 시 comment.profileImage로 교체
                             Box(
                                 modifier = Modifier
                                     .size(28.dp)

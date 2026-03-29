@@ -120,7 +120,9 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
         initialMinute = 0,
         is24Hour = true
     )
-    // 더미 추천 데이터 (나중에 AI API로 교체)
+
+    // TODO: API 연동 시 삭제
+    // POST /api/ai/recommend/personal → AI 추천 결과로 교체
     val recommendedList = listOf(
         RecommendedSchedule("11:00", "목욕하기"),
         RecommendedSchedule("13:00", "친구와 점심 식사"),
@@ -261,6 +263,7 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            // TODO: API 연동 시 recommendedList → AI 응답 데이터로 교체
                             recommendedList.forEach { item ->
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -309,6 +312,7 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                                     endTime = calculateEndTime(r.time, "60")
                                 )
                             }
+                            // TODO: API 연동 - POST /api/schedules (추천 일정 서버에 저장)
                             viewModel.addSchedules(today, items)
                             showRecommend = false
                         },
@@ -323,7 +327,8 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                         )
                     }
                     OutlinedButton(
-                        onClick = { /* TODO: AI API 재호출 */ },
+                        onClick = { /*TODO: AI API 재호출
+                         // POST /api/ai/recommend/personal */ },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
                         border = BorderStroke(1.dp, accentColor),
@@ -352,6 +357,7 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                                         endTime = calculateEndTime(input.startTime, input.duration)
                                     )
                                 }
+                            // TODO: API 연동 - POST /api/schedules (일정 서버에 저장)
                             viewModel.addSchedules(today, items)
                         },
                         modifier = Modifier.weight(1f),
@@ -365,7 +371,9 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                         )
                     }
                     OutlinedButton(
-                        onClick = { showRecommend = true },
+                        onClick = { showRecommend = true /*TODO: AI API 호출
+                         // POST /api/ai/recommend/personal
+                         // body: {schedules: inputs } */ },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
                         border = BorderStroke(1.dp, accentColor),
@@ -449,8 +457,12 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
     var expanded by remember { mutableStateOf(false) }
     val today = LocalDate.now()
 
+    // TODO: API 연동 시 서버에서 내 팀 목록 불러오기
+    // GET /api/teams → TeamViewModel.getMyTeams()로 교체
     val teams = listOf("투두프렌즈팀", "스터디팀", "사이드프로젝트팀")
 
+    // TODO: API 연동 시 삭제
+    // POST /api/ai/recommend/team → AI 추천 결과로 교체
     val recommendedList = listOf(
         RecommendedSchedule("14:00", "팀 미팅", "팀원 모두 가능"),
         RecommendedSchedule("17:00", "코드 리뷰", "팀원 모두 가능")
@@ -491,6 +503,7 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                     onDismissRequest = { expanded = false },
                     modifier = Modifier.background(Color(0xFF16161C))
                 ) {
+                    // TODO: API 연동 시 teams → 서버에서 받아온 팀 목록으로 교체
                     teams.forEach { team ->
                         DropdownMenuItem(
                             text = { Text(team, color = Color.White) },
@@ -517,6 +530,7 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // TODO: API 연동 시 recommendedList → AI 응답 데이터로 교체
                     recommendedList.forEach { item ->
                         Column(
                             modifier = Modifier
@@ -567,6 +581,7 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                                     time = r.time,
                                     endTime = calculateEndTime(r.time, "60"))
                             }
+                            // TODO: API 연동 - POST /api/teams/{teamId}/schedules (팀 일정 서버에 저장)
                             viewModel.addSchedules(today, items)
                             showRecommend = false
                         },
@@ -581,7 +596,10 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                         )
                     }
                     OutlinedButton(
-                        onClick = { /* TODO: AI API 재호출 */ },
+                        onClick = {
+                            // TODO: AI API 재호출
+                            // POST /api/ai/recommend/personal
+                        },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
                         border = BorderStroke(1.dp, accentColor),
@@ -650,7 +668,11 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
 
             item {
                 Button(
-                    onClick = { showRecommend = true },
+                    onClick = { showRecommend = true
+                        // TODO: AI API 호출
+                        // POST /api/ai/recommend/personal
+                        // body: { schedules: inputs }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                     shape = RoundedCornerShape(12.dp)

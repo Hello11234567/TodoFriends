@@ -23,6 +23,8 @@ fun FriendManageScreen(onBack: () -> Unit) {
     val bgColor = Color(0xFF0F0F13)
     val accentColor = Color(0xFFBF9B72)
 
+    //TODO: API 연동 시 ViewModel에서 친구 목록 불러오기
+    //GET /api/friends -> FriendViewModel.getFriends() -> friends 상태 업데이트
     var friends by remember { mutableStateOf(dummyFriends) }
     var showDeleteDialog by remember { mutableStateOf<Friend?>(null) }
 
@@ -52,6 +54,8 @@ fun FriendManageScreen(onBack: () -> Unit) {
                         friends = friends.filter { it.id != friend.id }
                         showDeleteDialog = null
                         // TODO: API 연동 - DELETE /api/friends/{friendId}
+                        // FriendViewModel.deleteFriend(friend.id) 호출
+                        // 서버에서 친구 삭제 후 friends 목록 갱신
                     }
                 ) {
                     Text("삭제", color = Color(0xFFEF5350), fontWeight = FontWeight.Bold)
@@ -124,6 +128,8 @@ fun FriendManageScreen(onBack: () -> Unit) {
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // TODO: API 연동 시 friend.profileImage로 교체
+                        // AsyncImage(model = friend.profileImage, ...)
                         //프로필 원
                         Box(
                             modifier = Modifier
@@ -150,6 +156,7 @@ fun FriendManageScreen(onBack: () -> Unit) {
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
                                 )
+                                // TODO: API 연동 시 서버에서 받은 팀 정보로 교체
                                 friend.team?.let { team ->
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Box(

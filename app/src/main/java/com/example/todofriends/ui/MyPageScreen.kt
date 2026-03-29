@@ -20,7 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-//더미 완료 일정 (나중에 API 연동으로 교체)
+// TODO: API 연동 시 삭제
+// GET /api/user/completed-schedules → ViewModel.getCompletedSchedules()로 교체
 val dummyCompletedSchedules = listOf(
     Pair("아침 운동", "3월 27일"),
     Pair("팀 미팅", "3월 26일"),
@@ -29,6 +30,8 @@ val dummyCompletedSchedules = listOf(
     Pair("운동", "3월 23일")
 )
 
+// TODO: API 연동 시 삭제
+// GET /api/teams → TeamViewModel.getMyTeams()로 교체
 val dummyTeams = listOf("투두프렌즈팀", "스터디팀")
 
 @Composable
@@ -58,10 +61,14 @@ fun MyPageMainScreen(
     val bgColor = Color(0xFF0F0F13)
     val accentColor = Color(0xFFBF9B72)
 
-    //더미 데이터
+    // TODO: API 연동 시 서버에서 받아온 사용자 정보로 교체
+    // GET /api/user/me → UserViewModel.getMyInfo()
     val userName = "김유정"
     val userEmail = "yujeong@gmail.com"
     val userInitial = "유정"
+
+    // TODO: API 연동 시 서버에서 받아온 통계로 교체
+    // GET /api/user/stats → UserViewModel.getStats()
     val completedCount = 42
     val friendCount = 4
     val teamCount = 2
@@ -83,6 +90,8 @@ fun MyPageMainScreen(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // TODO: API 연동 시 프로필 이미지로 교체
+                // AsyncImage(model = userProfileImage, ...)
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -215,7 +224,10 @@ fun MyPageMainScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color(0xFF16161C))
-                .clickable { /* TODO: 로그아웃 */ }
+                .clickable {
+                    // TODO: API 연동 - POST /api/auth/logout
+                    // JWT 토큰 삭제 후 LoginActivity로 이동
+                }
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
             Text(
@@ -271,6 +283,8 @@ fun StatDetailPanel(
         //내용
         when (statType) {
             "완료한 일정" -> {
+                // TODO: API 연동 시 dummyCompletedSchedules 삭제
+                // GET /api/user/completed-schedules → completedSchedules로 교체
                 dummyCompletedSchedules.forEachIndexed { index, (title, date) ->
                     Row(
                         modifier = Modifier
@@ -297,6 +311,8 @@ fun StatDetailPanel(
                 }
             }
             "친구" -> {
+                // TODO: API 연동 시 dummyFriends 삭제
+                // GET /api/friends → friends로 교체
                 dummyFriends.forEachIndexed { index, friend ->
                     Row(
                         modifier = Modifier
@@ -333,6 +349,8 @@ fun StatDetailPanel(
                 }
             }
             "팀" -> {
+                // TODO: API 연동 시 dummyTeams 삭제
+                // GET /api/teams → teams로 교체
                 dummyTeams.forEachIndexed { index, team ->
                     Row(
                         modifier = Modifier

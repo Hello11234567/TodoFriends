@@ -23,6 +23,9 @@ import androidx.compose.ui.unit.sp
 fun ProfileEditScreen(onBack: () -> Unit) {
     val bgColor = Color(0xFF0F0F13)
     val accentColor = Color(0xFFBF9B72)
+
+    // TODO: API 연동 시 서버에서 현재 닉네임 불러오기
+    // GET /api/user/me → nickname으로 초기값 설정
     var nickname by remember { mutableStateOf("김유정") }
     var isSaved by remember { mutableStateOf(false) }
 
@@ -65,7 +68,9 @@ fun ProfileEditScreen(onBack: () -> Unit) {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            //프로필 원
+            // TODO: API 연동 시 프로필 이미지 업로드 기능 추가
+            // 갤러리에서 선택 → Multipart로 서버 업로드
+            // PATCH /api/user/profile/image
             Box(
                 modifier = Modifier
                     .size(90.dp)
@@ -93,7 +98,10 @@ fun ProfileEditScreen(onBack: () -> Unit) {
                 )
                 BasicTextField(
                     value = nickname,
-                    onValueChange = { nickname = it },
+                    onValueChange = {
+                        nickname = it
+                        isSaved = false // 수정하면 저장 상태 초기화
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
@@ -131,6 +139,7 @@ fun ProfileEditScreen(onBack: () -> Unit) {
                         .background(Color(0xFF16161C))
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
+                    // TODO: API 연동 시 서버에서 받아온 이메일로 교체
                     Text(
                         text = "yujeong@gmail.com",
                         color = Color(0xFF555566),
@@ -156,6 +165,8 @@ fun ProfileEditScreen(onBack: () -> Unit) {
                     .clickable {
                         isSaved = true
                         // TODO: API 연동 - PATCH /api/user/profile
+                        // body: { nickname: nickname }
+                        // 성공 시 isSaved = true, 실패 시 에러 메시지 표시
                     }
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center

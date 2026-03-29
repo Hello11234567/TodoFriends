@@ -22,6 +22,8 @@ fun NotificationSCreen (onBack: () -> Unit) {
     val bgColor = Color(0xFF0F0F13)
     val accentColor = Color(0xFFBF9B72)
 
+    // TODO: API 연동 시 서버에서 알림 설정 불러오기
+    // GET /api/user/notification → NotificationViewModel.getSettings()
     var scheduleAlarm by remember { mutableStateOf(true) }
     var reactionAlarm by remember { mutableStateOf(true) }
     var friendRequestAlarm by remember { mutableStateOf(true) }
@@ -82,6 +84,7 @@ fun NotificationSCreen (onBack: () -> Unit) {
                     onToggle = {
                         scheduleAlarm = !scheduleAlarm
                         // TODO: API 연동 - PATCH/api/user/notification
+                        // body: { scheduleAlarm: scheduleAlarm }
                     }
                 )
                 HorizontalDivider(
@@ -96,7 +99,8 @@ fun NotificationSCreen (onBack: () -> Unit) {
                     accentColor = accentColor,
                     onToggle = {
                         reactionAlarm = !reactionAlarm
-                        // TODO: API 연동
+                        // TODO: API 연동 - PATCH /api/user/notification
+                        // body: { reactionAlarm: reactionAlarm }
                     }
                 )
                 HorizontalDivider(
@@ -112,7 +116,8 @@ fun NotificationSCreen (onBack: () -> Unit) {
                     isLast = true,
                     onToggle = {
                         friendRequestAlarm = !friendRequestAlarm
-                        // TODO: API 연동
+                        // TODO: API 연동 - PATCH /api/user/notification
+                        // body: { friendRequestAlarm: friendRequestAlarm }
                     }
                 )
                 HorizontalDivider(
@@ -128,7 +133,9 @@ fun NotificationSCreen (onBack: () -> Unit) {
                     isLast = true,
                     onToggle = {
                         friendAcceptAlarm = !friendAcceptAlarm
-                        // TODO: API 연동
+                        // TODO: API 연동 - PATCH /api/user/notification
+                        // body: { friendAcceptAlarm: friendAcceptAlarm }
+                        // + FCM 토큰 등록/해제 처리
                     }
                 )
             }

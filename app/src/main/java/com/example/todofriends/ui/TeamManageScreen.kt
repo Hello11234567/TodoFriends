@@ -30,7 +30,8 @@ data class Team(
     val members: List<Friend>
 )
 
-//더미 팀 데이터 (나중에 API 연동으로 교체)
+// TODO: API 연동 시 삭제
+// GET /api/teams → TeamViewModel.getMyTeams()로 교체
 val dummyTeamList = listOf(
     Team(
         id = "1",
@@ -53,6 +54,7 @@ fun TeamManageScreen(onBack: () -> Unit) {
     val bgColor = Color(0xFF0F0F13)
     val accentColor = Color(0xFFBF9B72)
 
+    // TODO: API 연동 시 dummyTeamList → TeamViewModel.teams로 교체
     var teams by remember { mutableStateOf(dummyTeamList) }
     var showLeaveDialog by remember { mutableStateOf<Team?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -85,6 +87,7 @@ fun TeamManageScreen(onBack: () -> Unit) {
                         teams = teams.filter { it.id != team.id }
                         showLeaveDialog = null
                         // TODO: API 연동 - DELETE /api/teams/{teamId}/leave
+                        // TeamViewModel.leaveTeam(team.id) 호출
                     }
                 ) {
                     Text("나가기", color = Color(0xFFEF5350), fontWeight = FontWeight.Bold)
@@ -147,6 +150,8 @@ fun TeamManageScreen(onBack: () -> Unit) {
                             showCreateDialog = false
                             newTeamName = ""
                             // TODO: API 연동 - POST /api/teams
+                            // body: { name: newTeamName }
+                            // 서버에서 생성된 팀 ID 받아서 teams 업데이트
                         }
                     }
                 ) {
@@ -240,6 +245,7 @@ fun TeamManageScreen(onBack: () -> Unit) {
                 contentPadding = PaddingValues(vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // TODO: API 연동 시 teams → TeamViewModel.teams로 교체
                 items(teams) { team ->
                     Column(
                         modifier = Modifier
@@ -313,6 +319,8 @@ fun TeamManageScreen(onBack: () -> Unit) {
                                 thickness = 0.5.dp,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
+                            // TODO: API 연동 시 team.members → 서버에서 받아온 팀원 목록으로 교체
+                            // GET /api/teams/{teamId}/members
                             team.members.forEachIndexed { index, member ->
                                 Row(
                                     modifier = Modifier
@@ -320,6 +328,7 @@ fun TeamManageScreen(onBack: () -> Unit) {
                                         .padding(horizontal = 16.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    // TODO: API 연동 시 member.profileImage로 교체
                                     Box(
                                         modifier = Modifier
                                             .size(32.dp)

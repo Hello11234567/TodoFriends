@@ -8,12 +8,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
 
 class ScheduleViewModel : ViewModel() {
+
+    // TODO: API 연동 시 서버에서 불러오기
+    // GET /api/schedules/{date} → loadSchedules(date) 호출 후 업데이트
     private val _scheduleMap = MutableStateFlow<Map<LocalDate, List<ScheduleItem>>>(emptyMap())
     val scheduleMap: StateFlow<Map<LocalDate, List<ScheduleItem>>> = _scheduleMap.asStateFlow()
     var personalInputs = mutableStateOf(listOf(ScheduleInput(id = 0)))
     var teamInputs = mutableStateOf(listOf(ScheduleInput(id = 0)))
 
-    //일정 추가
+    // TODO: API 연동 - POST /api/schedules
+    // 서버에 일정 저장 후 scheduleMap 업데이트
     fun addSchedules(date: LocalDate, items: List<ScheduleItem>) {
         val current = _scheduleMap.value.toMutableMap()
         val existing = current[date]?.toMutableList() ?: mutableListOf()
@@ -26,7 +30,8 @@ class ScheduleViewModel : ViewModel() {
         _scheduleMap.value = current
     }
 
-    //일정 체크/언체크
+    // TODO: API 연동 - PATCH /api/schedules/{scheduleId}/done
+    // 서버에 완료 상태 저장 후 scheduleMap 업데이트
     fun toggleSchedule(date: LocalDate, index: Int, item: ScheduleItem) {
         val current = _scheduleMap.value.toMutableMap()
         val list= current[date]?.toMutableList() ?: return
@@ -35,6 +40,8 @@ class ScheduleViewModel : ViewModel() {
         _scheduleMap.value = current
     }
 
+    // TODO: API 연동 - DELETE /api/schedules/{scheduleId}
+    // 서버에서 일정 삭제 후 scheduleMap 업데이트
     fun removeSchedule(date: LocalDate, scheduleId: Int) {
         val current = _scheduleMap.value.toMutableMap()
         val list = current[date]?.toMutableList() ?: return
@@ -43,6 +50,8 @@ class ScheduleViewModel : ViewModel() {
         _scheduleMap.value = current
     }
 
+    // TODO: API 연동 - POST /api/schedules/{scheduleId}/reactions
+    // 서버에 이모지 반응 저장 후 scheduleMap 업데이트
     fun toggleReaction(date: LocalDate, scheduleId: Int, emoji: String) {
         val current = _scheduleMap.value.toMutableMap()
         val list = current[date]?.toMutableList() ?: return
@@ -70,7 +79,10 @@ class ScheduleViewModel : ViewModel() {
         _scheduleMap.value = current
     }
 
-    // 댓글 추가
+    // TODO: API 연동 - POST /api/schedules/{scheduleId}/comments
+    // 서버에 댓글 저장 후 scheduleMap 업데이트
+    // userName은 로그인된 유저 닉네임으로 교체
+    // time은 서버 응답 시간으로 교체
     fun addComment(date: LocalDate, scheduleId: Int, text: String) {
         val current = _scheduleMap.value.toMutableMap()
         val list = current[date]?.toMutableList() ?: return

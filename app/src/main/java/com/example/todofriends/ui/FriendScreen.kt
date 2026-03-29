@@ -45,6 +45,8 @@ data class FriendRequest(
     val color: Color
 )
 
+// TODO: API 연동 시 삭제
+// GET /api/friends → FriendViewModel.getFriends()로 교체
 val dummyFriends = listOf(
     Friend("1", "홍길동", "@gildong", "투두프렌즈팀", "길동", Color(0xFF7B9EA6)),
     Friend("2", "이춘향", "@chunhyang", null, "춘향", Color(0xFFA67B9E)),
@@ -52,16 +54,22 @@ val dummyFriends = listOf(
     Friend("4", "김다은", "@daeun", "스터디팀", "다은", Color(0xFF7BA67B))
 )
 
+// TODO: API 연동 시 삭제
+// GET /api/friends/requests/received → FriendViewModel.getReceivedRequests()로 교체
 val dummyReceivedRequests = listOf(
     FriendRequest("1", "박달이", "@moon", "달이", Color(0xFFA67B7B)),
     FriendRequest("2", "정우주", "@universe", "우주", Color(0xFF7B7BA6))
 )
 
+// TODO: API 연동 시 삭제
+// GET /api/friends/requests/sent → FriendViewModel.getSentRequests()로 교체
 val dummySentRequests = listOf(
     FriendRequest("1", "양태양", "@taeyang", "태양", Color(0xFFA6A67B)),
     FriendRequest("2", "문별이", "@star", "별이", Color(0xFF7BA6A6))
 )
 
+// TODO: API 연동 시 삭제
+// GET /api/users/search?nickname={nickname} → FriendViewModel.searchUsers()로 교체
 val dummySearchResults = listOf(
     Friend("5", "양태양", "@taeyang", null, "태양", Color(0xFFA6A67B)),
     Friend("6", "문별이", "@star", null, "별이", Color(0xFF7BA6A6))
@@ -181,16 +189,17 @@ fun FriendMainScreen(
 }
 
 @Composable
-fun FriendListTab(accentColor: Color, onFriendClick: (Friend) -> Unit) {  // ✅ 파라미터 추가
+fun FriendListTab(accentColor: Color, onFriendClick: (Friend) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
+        // TODO: API 연동 시 dummyFriends → FriendViewModel.friends로 교체
         items(dummyFriends) { friend ->
             FriendListItem(
                 friend = friend,
                 accentColor = accentColor,
-                onFriendClick = onFriendClick  // ✅ 전달
+                onFriendClick = onFriendClick
             )
         }
     }
@@ -200,15 +209,17 @@ fun FriendListTab(accentColor: Color, onFriendClick: (Friend) -> Unit) {  // ✅
 fun FriendListItem(
     friend: Friend,
     accentColor: Color,
-    onFriendClick: (Friend) -> Unit  // ✅ 파라미터 추가
+    onFriendClick: (Friend) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onFriendClick(friend) }  // ✅ 수정
+            .clickable { onFriendClick(friend) }
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // TODO: API 연동 시 friend.profileImage로 교체
+        // AsyncImage(model = friend.profileImage, ...)
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -234,6 +245,7 @@ fun FriendListItem(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 )
+                // TODO: API 연동 시 서버에서 받은 팀 정보로 교체
                 friend.team?.let { team ->
                     Spacer(modifier = Modifier.width(6.dp))
                     Box(
@@ -266,6 +278,9 @@ fun FriendListItem(
 
 @Composable
 fun FriendRequestTab(accentColor: Color) {
+    // TODO: API 연동 시 ViewModel에서 받아오기
+    // GET /api/friends/requests/received
+    // GET /api/friends/requests/sent
     var receivedRequests by remember { mutableStateOf(dummyReceivedRequests) }
     var sentRequests by remember { mutableStateOf(dummySentRequests) }
 
@@ -295,8 +310,16 @@ fun FriendRequestTab(accentColor: Color) {
                 ReceivedRequestItem(
                     request = request,
                     accentColor = accentColor,
-                    onAccept = { receivedRequests = receivedRequests.filter { it.id != request.id } },
-                    onReject = { receivedRequests = receivedRequests.filter { it.id != request.id } }
+                    onAccept = {
+                        receivedRequests = receivedRequests.filter { it.id != request.id }
+                        // TODO: API 연동 - PATCH /api/friends/requests/{requestId}/accept
+                        // FriendViewModel.acceptRequest(request.id) 호출
+                    },
+                    onReject = {
+                        receivedRequests = receivedRequests.filter { it.id != request.id }
+                        // TODO: API 연동 - DELETE /api/friends/requests/{requestId}
+                        // FriendViewModel.rejectRequest(request.id) 호출
+                    }
                 )
             }
         }
@@ -323,7 +346,11 @@ fun FriendRequestTab(accentColor: Color) {
             items(sentRequests) { request ->
                 SentRequestItem(
                     request = request,
-                    onCancel = { sentRequests = sentRequests.filter { it.id != request.id } }
+                    onCancel = {
+                        sentRequests = sentRequests.filter { it.id != request.id }
+                        // TODO: API 연동 - DELETE /api/friends/requests/{requestId}
+                        // FriendViewModel.cancelRequest(request.id) 호출
+                    }
                 )
             }
         }
@@ -343,6 +370,7 @@ fun ReceivedRequestItem(
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // TODO: API 연동 시 request.profileImage로 교체
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -395,6 +423,7 @@ fun SentRequestItem(
             .padding(horizontal = 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // TODO: API 연동 시 request.profileImage로 교체
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -463,6 +492,8 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                 onValueChange = {
                     searchQuery = it
                     if (it.isNotBlank()) {
+                        // TODO: API 연동 - GET /api/users/search?nickname={it}
+                        // FriendViewModel.searchUsers(it) 호출 후 결과로 교체
                         searchResults = dummySearchResults.filter { friend ->
                             friend.name.contains(it) || friend.nickname.contains(it)
                         }
@@ -529,6 +560,7 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                             .fillMaxWidth()
                             .clickable {
                                 searchQuery = query
+                                // TODO: API 연동 - GET /api/users/search?nickname={query}
                                 searchResults = dummySearchResults.filter { friend ->
                                     friend.name.contains(query) || friend.nickname.contains(query)
                                 }
@@ -590,6 +622,7 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                                 .padding(horizontal = 20.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // TODO: API 연동 시 friend.profileImage로 교체
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
@@ -613,7 +646,10 @@ fun FriendSearchScreen(onBack: () -> Unit) {
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(accentColor)
-                                    .clickable { /* TODO: 친구 신청 API */ }
+                                    .clickable {
+                                        // TODO: API 연동 - POST /api/friends/request/{userId}
+                                        // FriendViewModel.sendFriendRequest(friend.id) 호출
+                                    }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text("신청", color = Color(0xFF1C0E06), fontSize = 13.sp, fontWeight = FontWeight.Bold)

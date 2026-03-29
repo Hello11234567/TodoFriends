@@ -87,6 +87,9 @@ fun HomeScreen(scheduleViewModel: ScheduleViewModel) {
     val bgColor = Color(0xFF0F0F13)
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     val showSchedule = selectedDate != null
+
+    // TODO: API 연동 시 ViewModel에서 서버 데이터 불러오기
+    // GET /api/schedules/{date} → ScheduleViewModel.loadSchedules(date) 호출
     val scheduleMap by scheduleViewModel.scheduleMap.collectAsState()
 
     // ✅ selectedSchedule을 HomeScreen 레벨로
@@ -133,15 +136,19 @@ fun HomeScreen(scheduleViewModel: ScheduleViewModel) {
                             selectedDate = date,
                             schedules = schedules,
                             onCheckedChange = { index, item ->
+                                // TODO: API 연동 - PATCH /api/schedules/{scheduleId}/done
                                 scheduleViewModel.toggleSchedule(date, index, item)
                             },
                             onDelete = { index, item ->
+                                // TODO: API 연동 - DELETE /api/schedules/{scheduleId}
                                 scheduleViewModel.removeSchedule(date, item.id)
                             },
                             onReactionToggle = { scheduleId, emoji ->
+                                // TODO: API 연동 - POST /api/schedules/{scheduleId}/reactions
                                 scheduleViewModel.toggleReaction(date, scheduleId, emoji)
                             },
                             onCommentAdd = { scheduleId, text ->
+                                // TODO: API 연동 - POST /api/schedules/{scheduleId}/comments
                                 scheduleViewModel.addComment(date, scheduleId, text)
                             },
                             onScheduleTap = { selectedSchedule = it },
@@ -161,9 +168,11 @@ fun HomeScreen(scheduleViewModel: ScheduleViewModel) {
                 accentColor = Color(0xFFBF9B72),
                 onDismiss = { selectedSchedule = null },
                 onReactionToggle = { emoji ->
+                    // TODO: API 연동 - POST /api/schedules/{scheduleId}/comments
                     scheduleViewModel.toggleReaction(date, schedule.id, emoji)
                 },
                 onCommentAdd = { text ->
+                    // TODO: API 연동 - POST /api/schedules/{scheduleId}/comments
                     scheduleViewModel.addComment(date, schedule.id, text)
                 }
             )
@@ -480,7 +489,7 @@ fun ScheduleRow(
                             textDecoration = if (item.isDone) TextDecoration.LineThrough else TextDecoration.None
                         )
 
-                        // 이모지 미리보기
+                        // TODO: API 연동 시 서버에서 받아온 reactions 데이터로 교체
                         if (item.reactions.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -587,6 +596,8 @@ fun ScheduleDetailBottomSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             ) {
+                // TODO: API 연동 시 서버에서 받아온 reactions로 교체
+                // GET /api/schedules/{scheduleId}/reactions
                 schedule.reactions.forEach { reaction ->
                     Box(
                         modifier = Modifier
@@ -641,7 +652,8 @@ fun ScheduleDetailBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 댓글
+            // TODO: API 연동 시 서버에서 받아온 reactions로 교체
+            // GET /api/schedules/{scheduleId}/reactions
             if (schedule.comments.isNotEmpty()) {
                 Text(text = "댓글", color = Color(0xFF888899), fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -651,6 +663,7 @@ fun ScheduleDetailBottomSheet(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // TODO: API 연동 시 comment.profileImage로 교체
                             Box(
                                 modifier = Modifier
                                     .size(28.dp)
@@ -677,7 +690,7 @@ fun ScheduleDetailBottomSheet(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = comment.time,
+                                        text = comment.time,  // TODO: 서버 시간으로 교체
                                         color = Color(0xFF555566),
                                         fontSize = 11.sp
                                     )
