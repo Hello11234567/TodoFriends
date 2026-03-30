@@ -27,7 +27,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.todofriends.R
 
-//네비게이션 경로 정의
 sealed class Screen(val route: String) {
     object Schedule : Screen("schedule")
     object Home : Screen("home")
@@ -38,23 +37,27 @@ sealed class Screen(val route: String) {
 class NavActivity : ComponentActivity() {
     override fun onCreate(savedInstance: Bundle?) {
         super.onCreate(savedInstance)
+        val startDestination = intent.getStringExtra("startDestination") ?: Screen.Home.route
         setContent {
-            NavScreen()
+            NavScreen(startDestination = startDestination)
         }
     }
 }
 
 @Composable
-fun NavScreen() {
+fun NavScreen(startDestination: String = Screen.Home.route) {
     val navController = rememberNavController()
     val scheduleViewModel: ScheduleViewModel = viewModel()
     val bgColor = Color(0xFF0F0F13)
     val context = LocalContext.current
 
-    // TODO: API 연동 시 JWT 토큰으로 로그인 여부 확인
     val isLoggedIn = context
         .getSharedPreferences("auth", Context.MODE_PRIVATE)
         .getString("jwt", null) != null
+
+    val isRegistered = context
+        .getSharedPreferences("auth", Context.MODE_PRIVATE)
+        .getBoolean("isRegistered", false)
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -107,17 +110,24 @@ fun NavScreen() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = if (isLoggedIn && !isRegistered) "profile_setup" else startDestination,
             modifier = Modifier
                 .padding(paddingValues)
                 .background(bgColor)
         ) {
+            composable("profile_setup") {
+                ProfileEditScreen(
+                    onComplete = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo("profile_setup") { inclusive = true }
+                        }
+                    }
+                )
+            }
             composable(Screen.Home.route) {
-                //홈은 로그인 없이 볼 수 있음
                 HomeScreen(scheduleViewModel = scheduleViewModel)
             }
             composable(Screen.Schedule.route) {
-                //TODO: API 연동 시 isLoggedIn -> 서버 토큰 유효성 검사로 교체
                 if (isLoggedIn) ScheduleScreen(viewModel = scheduleViewModel)
                 else LoginPromptScreen(onBack = {
                     navController.navigate(Screen.Home.route) {
@@ -126,16 +136,14 @@ fun NavScreen() {
                 })
             }
             composable(Screen.Friend.route) {
-                //TODO: API 연동 시 isLoggedIn -> 서버 토큰 유효성 검사로 교체
-               if (isLoggedIn) FriendScreen()
-               else LoginPromptScreen(onBack = {
-                   navController.navigate(Screen.Home.route) {
-                       popUpTo(navController.graph.findStartDestination().id)
-                   }
-               })
+                if (isLoggedIn) FriendScreen()
+                else LoginPromptScreen(onBack = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                    }
+                })
             }
             composable(Screen.MyPage.route) {
-                //TODO: API 연동 시 isLoggedIn -> 서버 토큰 유효성 검사로 교체
                 if (isLoggedIn) MyPageScreen()
                 else LoginPromptScreen(onBack = {
                     navController.navigate(Screen.Home.route) {

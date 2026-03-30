@@ -34,19 +34,7 @@ class SplashActivity : ComponentActivity() {
         }
 
         Handler(Looper.getMainLooper()).postDelayed({
-
-            val intent = Intent(this, NavActivity::class.java)
-            startActivity(intent)
-            val jwt = getSharedPreferences("auth", MODE_PRIVATE)
-                .getString("jwt", null)
-
-            if (jwt != null) {
-                // JWT 있으면 바로 홈으로
-                startActivity(Intent(this, NavActivity::class.java))
-            } else {
-                // JWT 없으면 로그인으로
-                startActivity(Intent(this, LoginActivity::class.java))
-            }
+            startActivity(Intent(this, NavActivity::class.java))
             finish()
         }, 3000)
     }

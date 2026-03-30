@@ -72,7 +72,11 @@ class LoginActivity : ComponentActivity() {
                 getSharedPreferences("auth", MODE_PRIVATE)
                     .edit()
                     .putString("jwt", response.token)
+                    .putString("nickname", response.nickname)
+                    .putBoolean("isRegistered", response.isRegistered == true)
                     .apply()
+
+                // NavActivity로 이동, 분기는 NavActivity에서 처리
                 navigateToMain()
             } catch (e: Exception) {
                 Log.e("Server", "서버 전송 실패", e)
@@ -82,7 +86,9 @@ class LoginActivity : ComponentActivity() {
     }
 
     private fun navigateToMain() {
-        startActivity(Intent(this, NavActivity::class.java))
+        val intent = Intent(this, NavActivity::class.java)
+        intent.putExtra("startDestination", "mypage")
+        startActivity(intent)
         finish()
     }
 }
