@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -19,6 +21,14 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localProperties.load(localPropertiesFile.inputStream())
+        }
+        val openAiKey = localProperties.getProperty("OPENAI_API_KEY") as String? ?: ""
+        buildConfigField("String", "OPENAI_API_KEY", "\"$openAiKey\"")
     }
 
     buildTypes {
@@ -37,6 +47,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -74,5 +85,8 @@ dependencies {
 
     //일정 슬라이드 삭제에 사용
     implementation("androidx.compose.material:material:1.6.0")
+
+    //OpenAI API 호출용
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
 }

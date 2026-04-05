@@ -5,7 +5,11 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.LocalDate
+import com.example.todofriends.network.OpenAiService
 
 class ScheduleViewModel : ViewModel() {
 
@@ -15,6 +19,82 @@ class ScheduleViewModel : ViewModel() {
     val scheduleMap: StateFlow<Map<LocalDate, List<ScheduleItem>>> = _scheduleMap.asStateFlow()
     var personalInputs = mutableStateOf(listOf(ScheduleInput(id = 0)))
     var teamInputs = mutableStateOf(listOf(ScheduleInput(id = 0)))
+    var isAiLoading = mutableStateOf(false)
+    var aiRecommendedList = mutableStateOf<List<Map<String, String>>>(emptyList())
+
+    fun getPersonalRecommendation(
+        inputs: List<ScheduleInput>,
+        existingSchedules: List<ScheduleItem> = emptyList(),
+        selectedDate: LocalDate = LocalDate.now()
+    ) {
+        isAiLoading.value = true
+        CoroutineScope(Dispatchers.IO).launch {
+            val schedules = inputs
+                .filter { it.name.isNotBlank() }
+                .map { input ->
+                    mapOf(
+                        "name" to input.name,
+                        "duration" to input.duration,
+                        "preferredTime" to input.preferredTime,
+                        "priority" to input.priority
+                    )
+                }
+
+            val existing = existingSchedules.map {s ->
+                mapOf(
+                    "title" to s.title,
+                    "startTime" to s.time,
+                    "endTime" to s.endTime
+                )
+            }
+
+            val result = OpenAiService.getPersonalScheduleRecommendation(
+                schedules,
+                existing,
+                selectedDate.toString()
+                )
+
+            aiRecommendedList.value = result
+            isAiLoading.value = false
+
+
+        }
+    }
+
+    fun getTeamRecommendation (
+        inputs: List<ScheduleInput>,
+        dateRange: String,
+        startDate: String,
+        endDate: String
+    ) {
+        isAiLoading.value = true
+        CoroutineScope(Dispatchers.IO).launch {
+            val schedules = inputs
+                .filter { it.name.isNotBlank() }
+                .map { input ->
+                    mapOf(
+                        "name" to input.name,
+                        "duration" to input.duration
+                    )
+                }
+
+            //TODO: API 연동시 DB에서 팀원 일정 불러오기
+            val membersSchedules = emptyList<Map<String, String>>()
+            //TODO: API 연동시 DB에서 내 일정 불러오기
+            val mySchedules = emptyList<Map<String, String>>()
+
+            val result = OpenAiService.getTeamScheduleRecommendation(
+                schedules,
+                membersSchedules,
+                mySchedules,
+                dateRange,
+                startDate,
+                endDate
+            )
+            aiRecommendedList.value = result
+            isAiLoading.value = false
+        }
+    }
 
     // TODO: API 연동 - POST /api/schedules
     // 서버에 일정 저장 후 scheduleMap 업데이트

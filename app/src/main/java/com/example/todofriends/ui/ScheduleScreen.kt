@@ -20,6 +20,10 @@ import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +36,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.alpha
 import java.time.LocalDate
 
 
@@ -41,7 +46,8 @@ data class ScheduleInput(
     val startTime: String = "",
     val duration: String = "",
     val preferredTime: String = "", //오전, 오후. 저녁 선택
-    val priority: String = "" //우선순위 높음, 보통 , 낮음 선택
+    val priority: String = "", //우선순위 높음, 보통 , 낮음 선택
+    val dateRange: String = "" //이번주, 다음주, 직접 선택
 )
 
 data class RecommendedSchedule(
@@ -110,9 +116,13 @@ fun ScheduleScreen(viewModel: ScheduleViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var selectedDateLabel by remember { mutableStateOf("오늘") }
+    var showPersonalDatePicker by remember { mutableStateOf(false) }
     var inputs by viewModel.personalInputs
     var showRecommend by remember { mutableStateOf(false) }
     var isAiMode by remember { mutableStateOf(false) }  // ✅ 직접입력/AI추천 모드
+    val context = LocalContext.current
     val today = LocalDate.now()
 
     var showTimePicker by remember { mutableStateOf(false) }
@@ -123,12 +133,8 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
         is24Hour = true
     )
 
-    // TODO: API 연동 시 삭제
-    val recommendedList = listOf(
-        RecommendedSchedule("09:00", "아침 운동"),
-        RecommendedSchedule("13:00", "공부하기"),
-        RecommendedSchedule("18:00", "저녁 식사")
-    )
+    val aiResult by viewModel.aiRecommendedList
+    val isLoading by viewModel.isAiLoading
 
     if (showTimePicker) {
         AlertDialog(
@@ -166,6 +172,55 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
         )
     }
 
+    if (showPersonalDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate
+                .atStartOfDay(java.time.ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showPersonalDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        selectedDate = java.time.Instant.ofEpochMilli(it)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate()
+                        selectedDateLabel = "직접 선택"
+                    }
+                    showPersonalDatePicker = false
+                }) {
+                    Text("확인", color = accentColor)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPersonalDatePicker = false }) {
+                    Text("취소", color = Color(0xFF888899))
+                }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color(0xFF1A1A24)
+            )
+        ) {
+            DatePicker(
+                state = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color(0xFF1A1A24),
+                    titleContentColor = Color.White,
+                    headlineContentColor = accentColor,
+                    weekdayContentColor = Color(0xFF888899),
+                    dayContentColor = Color.White,
+                    selectedDayContainerColor = accentColor,
+                    selectedDayContentColor = Color(0xFF1C0E06),
+                    todayDateBorderColor = accentColor,
+                    todayContentColor = accentColor
+                )
+            )
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -173,6 +228,73 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(vertical = 20.dp)
     ) {
+        // 날짜 선택
+        item {
+            Text("날짜 선택", color = Color(0xFF888899), fontSize = 13.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("오늘", "내일", "직접 선택").forEach { label ->
+                    val selected = selectedDateLabel == label
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (selected) accentColor.copy(alpha = 0.2f)
+                                else Color(0xFF16161C)
+                            )
+                            .border(
+                                1.dp,
+                                if (selected) accentColor else Color.Transparent,
+                                RoundedCornerShape(10.dp)
+                            )
+                            .clickable {
+                                selectedDateLabel = label
+                                when (label) {
+                                    "오늘" -> selectedDate = LocalDate.now()
+                                    "내일" -> selectedDate = LocalDate.now().plusDays(1)
+                                    "직접 선택" -> showPersonalDatePicker = true
+                                }
+                            }
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (selected) accentColor else Color(0xFF555566),
+                            fontSize = 13.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+
+            // 직접 선택 시 날짜 표시
+            if (selectedDateLabel == "직접 선택") {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF16161C))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${selectedDate.monthValue}월 ${selectedDate.dayOfMonth}일",
+                        color = accentColor,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "변경",
+                        color = Color(0xFF555566),
+                        fontSize = 12.sp,
+                        modifier = Modifier.clickable { showPersonalDatePicker = true }
+                    )
+                }
+            }
+        }
+
         // ✅ 모드 선택 탭 (직접 입력 / AI 추천)
         item {
             Row(
@@ -182,14 +304,18 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                     .background(Color(0xFF16161C))
                     .padding(4.dp)
             ) {
-                listOf("직접 입력", "AI 추천").forEachIndexed { index, label ->
+                listOf("나만의 플래너", "스마트 플래너").forEachIndexed { index, label ->
                     val selected = if (index == 0) !isAiMode else isAiMode
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(10.dp))
                             .background(if (selected) accentColor else Color.Transparent)
-                            .clickable { isAiMode = index == 1 }
+                            .clickable {
+                                isAiMode = index == 1
+                                inputs = listOf(ScheduleInput(id = 0))
+                                showRecommend = false
+                            }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -268,18 +394,25 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
             item {
                 Button(
                     onClick = {
-                        val items = inputs
-                            .filter { it.name.isNotBlank() }
-                            .mapIndexed { i, input ->
-                                ScheduleItem(
-                                    id = i,
-                                    title = input.name,
-                                    time = input.startTime,
-                                    endTime = calculateEndTime(input.startTime, input.duration)
-                                )
-                            }
-                        // TODO: API 연동 - POST /api/schedules
-                        viewModel.addSchedules(today, items)
+                        if (inputs.all { it.name.isBlank() }) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "일정을 입력하면 바로 추천해드릴게요 :)",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            val items = inputs
+                                .filter { it.name.isNotBlank() }
+                                .mapIndexed { i, input ->
+                                    ScheduleItem(
+                                        id = i,
+                                        title = input.name,
+                                        time = input.startTime,
+                                        endTime = calculateEndTime(input.startTime, input.duration)
+                                    )
+                                }
+                            viewModel.addSchedules(selectedDate, items)
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = accentColor),
@@ -360,34 +493,51 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                 item {
                     Text("추천 일정", color = Color(0xFF888899), fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF1C1C14))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // TODO: AI 응답 데이터로 교체
-                        recommendedList.forEach { item ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = item.time,
-                                    color = accentColor,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.width(52.dp)
-                                )
-                                Column {
-                                    Text(text = item.title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(0.6f)
-                                            .height(3.dp)
-                                            .clip(RoundedCornerShape(2.dp))
-                                            .background(accentColor.copy(alpha = 0.4f))
+
+                    //로딩중
+                    if (isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = accentColor)
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFF1C1C14))
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            aiResult.forEach { item ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = item["startTime"] ?: "",
+                                        color = accentColor,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.width(52.dp)
                                     )
+                                    Column {
+                                        Text(
+                                            text = item["title"] ?: "",
+                                            color = Color.White,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(0.6f)
+                                                .height(3.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(accentColor.copy(alpha = 0.4f))
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -401,11 +551,16 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                     ) {
                         Button(
                             onClick = {
-                                val items = recommendedList.mapIndexed { i, r ->
-                                    ScheduleItem(id = i, title = r.title, time = r.time, endTime = calculateEndTime(r.time, "60"))
+                                val items = aiResult.mapIndexed { i, r ->
+                                    ScheduleItem(
+                                        id = i,
+                                        title = r["title"] ?: "",
+                                        time = r["startTime"] ?: "",
+                                        endTime = r["endTime"] ?: ""
+                                    )
                                 }
                                 // TODO: API 연동 - POST /api/schedules
-                                viewModel.addSchedules(today, items)
+                                viewModel.addSchedules(selectedDate, items)
                                 showRecommend = false
                             },
                             modifier = Modifier.weight(1f),
@@ -416,7 +571,11 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                         }
                         OutlinedButton(
                             onClick = {
-                                // TODO: AI API 재호출
+                                //AI API 호출
+                                viewModel.getPersonalRecommendation(
+                                    inputs = inputs,
+                                    existingSchedules = emptyList(), // TODO: API 연동시 오늘 일정 넣기
+                                )
                             },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
@@ -431,10 +590,23 @@ fun PersonalScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                 item {
                     Button(
                         onClick = {
-                            showRecommend = true
-                            // TODO: AI API 호출
-                            // POST /api/ai/recommend/personal
-                            // body: { schedules: inputs (name, duration, preferredTime, priority) }
+                            if (inputs.all { it.name.isBlank() }) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "일정을 입력하면 바로 추천해드릴게요 :)",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                showRecommend = true
+                                //AI API 호출
+                                viewModel.getPersonalRecommendation(
+                                    inputs = inputs,
+                                    existingSchedules = emptyList(), // TODO: API 연동시 오늘 일정 넣기
+                                    selectedDate = selectedDate
+                                )
+                                // POST /api/ai/recommend/personal
+                                // body: { schedules: inputs (name, duration, preferredTime, priority) }
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = accentColor),
@@ -633,12 +805,18 @@ fun AiInputRow(
 // ────────────────────────────────────────
 // 팀 탭
 // ────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
     var inputs by viewModel.teamInputs
     var showRecommend by remember { mutableStateOf(false) }
     var selectedTeam by remember { mutableStateOf("투두프렌즈팀") }
     var expanded by remember { mutableStateOf(false) }
+    var selectedDateRange by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf<LocalDate?>(null) }
+    var endDate by remember { mutableStateOf<LocalDate?>(null) }
+    var showDateRangePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val today = LocalDate.now()
 
     // TODO: API 연동 시 서버에서 내 팀 목록 불러오기
@@ -647,10 +825,95 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
 
     // TODO: API 연동 시 삭제
     // POST /api/ai/recommend/team → AI 추천 결과로 교체
-    val recommendedList = listOf(
-        RecommendedSchedule("14:00", "팀 미팅", "팀원 모두 가능"),
-        RecommendedSchedule("17:00", "코드 리뷰", "팀원 모두 가능")
-    )
+    val aiResult by viewModel.aiRecommendedList
+    val isLoading by viewModel.isAiLoading
+
+    // ✅ DateRangePicker 다이얼로그
+    if (showDateRangePicker) {
+        val dateRangePickerState = rememberDateRangePickerState()
+
+        DatePickerDialog(
+            onDismissRequest = { showDateRangePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val start = dateRangePickerState.selectedStartDateMillis
+                    val end = dateRangePickerState.selectedEndDateMillis
+                    if (start != null && end != null) {
+                        startDate = java.time.Instant.ofEpochMilli(start)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate()
+                        endDate = java.time.Instant.ofEpochMilli(end)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate()
+                        selectedDateRange = "직접 선택"
+                    }
+                    showDateRangePicker = false
+                }) {
+                    Text("확인", color = accentColor)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDateRangePicker = false }) {
+                    Text("취소", color = Color(0xFF888899))
+                }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color(0xFF1A1A24)
+            )
+        ) {
+            DateRangePicker(
+                state = dateRangePickerState,
+                modifier = Modifier.height(500.dp),
+                title = {
+                    Text(
+                        text = "날짜 범위 선택",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(start = 16.dp, top = 16.dp)
+                    )
+                },
+                headline = {
+                    val start = dateRangePickerState.selectedStartDateMillis
+                    val end = dateRangePickerState.selectedEndDateMillis
+                    val startText = start?.let {
+                        java.time.Instant.ofEpochMilli(it)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate()
+                            .let { d -> "${d.monthValue}월 ${d.dayOfMonth}일" }
+                    } ?: "시작일"
+                    val endText = end?.let {
+                        java.time.Instant.ofEpochMilli(it)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate()
+                            .let { d -> "${d.monthValue}월 ${d.dayOfMonth}일" }
+                    } ?: "종료일"
+
+                    Text(
+                        text = "$startText - $endText",
+                        color = accentColor,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+                    )
+                },
+                showModeToggle = false,  // ✅ 모드 토글 숨기기
+                colors = DatePickerDefaults.colors(
+                    containerColor = Color(0xFF1A1A24),
+                    titleContentColor = Color.White,
+                    headlineContentColor = accentColor,
+                    weekdayContentColor = Color(0xFF888899),
+                    subheadContentColor = Color(0xFF888899),
+                    dayContentColor = Color.White,
+                    selectedDayContainerColor = accentColor,
+                    selectedDayContentColor = Color(0xFF1C0E06),
+                    todayDateBorderColor = accentColor,
+                    todayContentColor = accentColor,
+                    dayInSelectionRangeContainerColor = accentColor.copy(alpha = 0.2f),
+                    dayInSelectionRangeContentColor = Color.White
+                )
+            )
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -659,7 +922,7 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(vertical = 20.dp)
     ) {
-        // 팀 선택 드롭다운
+        // 팀 선택
         item {
             Text("팀 선택", color = Color(0xFF888899), fontSize = 13.sp)
             Spacer(modifier = Modifier.height(8.dp))
@@ -691,10 +954,86 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                     teams.forEach { team ->
                         DropdownMenuItem(
                             text = { Text(team, color = Color.White) },
-                            onClick = {
-                                selectedTeam = team
-                                expanded = false
+                            onClick = { selectedTeam = team; expanded = false }
+                        )
+                    }
+                }
+            }
+        }
+
+        // 날짜 범위 선택
+        item {
+            Text("날짜 범위", color = Color(0xFF888899), fontSize = 13.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("이번 주", "다음 주", "직접 선택").forEach { range ->
+                    val selected = selectedDateRange == range
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (selected) accentColor.copy(alpha = 0.2f)
+                                else Color(0xFF16161C)
+                            )
+                            .border(
+                                1.dp,
+                                if (selected) accentColor else Color.Transparent,
+                                RoundedCornerShape(10.dp)
+                            )
+                            .clickable {
+                                selectedDateRange = range
+                                when (range) {
+                                    "이번 주" -> {
+                                        startDate = LocalDate.now()
+                                        endDate = LocalDate.now()
+                                            .with(java.time.DayOfWeek.SATURDAY)
+                                    }
+                                    "다음 주" -> {
+                                        val today = LocalDate.now()
+                                        val dayOfWeek = today.dayOfWeek.value % 7 // 일=0, 월=1, ... 토=6
+                                        val daysUntilNextSunday = 7 - dayOfWeek
+                                        startDate = today.plusDays(daysUntilNextSunday.toLong())
+                                        endDate = today.plusDays((daysUntilNextSunday + 6).toLong())
+                                    }
+                                    "직접 선택" -> showDateRangePicker = true
+                                }
                             }
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = range,
+                            color = if (selected) accentColor else Color(0xFF555566),
+                            fontSize = 13.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+
+            // 선택된 날짜 범위 표시
+            if (selectedDateRange.isNotEmpty() && startDate != null && endDate != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF16161C))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${startDate!!.monthValue}월 ${startDate!!.dayOfMonth}일 - ${endDate!!.monthValue}월 ${endDate!!.dayOfMonth}일",
+                        color = accentColor,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    if (selectedDateRange == "직접 선택") {
+                        Text(
+                            text = "변경",
+                            color = Color(0xFF555566),
+                            fontSize = 12.sp,
+                            modifier = Modifier.clickable { showDateRangePicker = true }
                         )
                     }
                 }
@@ -702,20 +1041,29 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
         }
 
         if (showRecommend) {
-            // 팀 추천 결과 (입력 화면 없이 추천만)
+            // 추천 결과
             item {
                 Text("추천 일정", color = Color(0xFF888899), fontSize = 13.sp)
                 Spacer(modifier = Modifier.height(8.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF1C1C14))
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // TODO: API 연동 시 recommendedList → AI 응답 데이터로 교체
-                    recommendedList.forEach { item ->
+
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical  = 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = accentColor)
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF1C1C14))
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -723,29 +1071,32 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                                 .background(Color(0xFF222218))
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = item.title,
-                                    color = Color.White,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "${item.time} - ${addHour(item.time)}",
-                                    color = accentColor,
-                                    fontSize = 13.sp
-                                )
-                            }
-                            if (item.description.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = item.description,
-                                    color = Color(0xFF888899),
-                                    fontSize = 13.sp
-                                )
+                            aiResult.forEach { item ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = item["title"] ?: "",
+                                        color = Color.White,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "${item["date"]} ${item["startTime"]}",
+                                        color = accentColor,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                                if (!item["description"].isNullOrEmpty()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = item["description"] ?: "",
+                                        color = Color(0xFF888899),
+                                        fontSize = 13.sp
+                                    )
+                                }
                             }
                         }
                     }
@@ -759,13 +1110,15 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                 ) {
                     Button(
                         onClick = {
-                            val items = recommendedList.mapIndexed { i, r ->
-                                ScheduleItem(id = i,
-                                    title = r.title,
-                                    time = r.time,
-                                    endTime = calculateEndTime(r.time, "60"))
+                            val items = aiResult.mapIndexed { i, r ->
+                                ScheduleItem(
+                                    id = i,
+                                    title = r["title"] ?: "",
+                                    time = r["startTime"] ?: "",
+                                    endTime = r["endTime"] ?: ""
+                                )
                             }
-                            // TODO: API 연동 - POST /api/teams/{teamId}/schedules (팀 일정 서버에 저장)
+                            // TODO: API 연동 - POST /api/teams/{teamId}/schedules
                             viewModel.addSchedules(today, items)
                             showRecommend = false
                         },
@@ -773,16 +1126,18 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
                         colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(
-                            "일정에 추가할게😊",
-                            color = Color(0xFF1C0E06),
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("일정에 추가할게😊", color = Color(0xFF1C0E06), fontWeight = FontWeight.Bold)
                     }
                     OutlinedButton(
                         onClick = {
                             // TODO: AI API 재호출
-                            // POST /api/ai/recommend/personal
+                            viewModel.getTeamRecommendation(
+                                inputs = inputs,
+                                dateRange = selectedDateRange,
+                                startDate = startDate?.toString() ?: "",
+                                endDate = endDate?.toString() ?: ""
+                            )
+                            // POST /api/ai/recommend/team
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
@@ -852,20 +1207,55 @@ fun TeamScheduleTab(accentColor: Color, viewModel: ScheduleViewModel) {
 
             item {
                 Button(
-                    onClick = { showRecommend = true
-                        // TODO: AI API 호출
-                        // POST /api/ai/recommend/personal
-                        // body: { schedules: inputs }
+                    onClick = {
+                        if (inputs.all { it.name.isBlank() }) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "일정을 입력하면 바로 추천해드릴게요 :)",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            showRecommend = true
+                            viewModel.getTeamRecommendation(
+                                inputs = inputs,
+                                dateRange = selectedDateRange,
+                                startDate = startDate?.toString() ?: "",
+                                endDate = endDate?.toString() ?: ""
+                            )
+                            // POST /api/ai/recommend/team
+                            // body: {
+                            //   teamId: selectedTeam,
+                            //   dateRange: selectedDateRange,
+                            //   startDate: startDate,
+                            //   endDate: endDate,
+                            //   schedules: inputs,
+                            //   membersSchedules: 팀원 일정 (DB에서 조회)
+                            // }
+                        }
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(if (selectedDateRange.isEmpty()) 0.5f else 1f),
+                    enabled = selectedDateRange.isNotEmpty(),
                     colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        "최적의 일정 추천 받올래!",
+                        "최적 일정 추천 받을래!",
                         color = Color(0xFF1C0E06),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+
+                if (selectedDateRange.isEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "날짜 범위를 먼저 선택해주세요",
+                        color = Color(0xFF555566),
+                        fontSize = 12.sp,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             }
